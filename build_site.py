@@ -20,6 +20,13 @@ HEAD = (
     "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\">"
     "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">"
     "<link rel=\"icon\" href=\"assets/odam-logo.webp\" type=\"image/webp\">"
+    # 메신저에 링크를 붙였을 때 보이는 미리보기
+    "<meta name=\"description\" content=\"고민을 털어놓고, 내 상황에 맞는 정부·부산시 지원을 한 번에 찾아봅니다.\">"
+    "<meta property=\"og:type\" content=\"website\">"
+    "<meta property=\"og:title\" content=\"오담 지원 길잡이\">"
+    "<meta property=\"og:description\" content=\"고민을 털어놓고, 내 상황에 맞는 정부·부산시 지원을 한 번에 찾아봅니다.\">"
+    "<meta property=\"og:url\" content=\"https://seo-h28.github.io/odam/\">"
+    "<meta property=\"og:image\" content=\"https://seo-h28.github.io/odam/assets/odam-logo.webp\">"
     "<style>:root{color-scheme:light;box-sizing:border-box}"
     "body{margin:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif}"
     "img{max-width:100%}[hidden]{display:none!important}</style>"

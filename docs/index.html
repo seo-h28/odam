@@ -1,5 +1,5 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="assets/odam-logo.webp" type="image/webp"><style>:root{color-scheme:light;box-sizing:border-box}body{margin:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
-<title>소득 계층 변화 지도</title>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="assets/odam-logo.webp" type="image/webp"><meta name="description" content="고민을 털어놓고, 내 상황에 맞는 정부·부산시 지원을 한 번에 찾아봅니다."><meta property="og:type" content="website"><meta property="og:title" content="오담 지원 길잡이"><meta property="og:description" content="고민을 털어놓고, 내 상황에 맞는 정부·부산시 지원을 한 번에 찾아봅니다."><meta property="og:url" content="https://seo-h28.github.io/odam/"><meta property="og:image" content="https://seo-h28.github.io/odam/assets/odam-logo.webp"><style>:root{color-scheme:light;box-sizing:border-box}body{margin:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>오담 지원 길잡이</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Jua&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
@@ -258,6 +258,12 @@ select, input[type=number], input[type=text] { border: 2px solid var(--line); bo
 .wcrisis { border: 0; background: var(--flower-soft); border-radius: 16px; }
 .crisisline { border: 0; background: var(--flower-soft); }
 .sv-hand { margin: 0; }
+.foot { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; padding: 20px 4px 8px; border-top: 1px dashed var(--line); font-size: 13px; color: var(--muted); }
+.foot p { margin: 0; }
+.foot b { color: var(--fg); }
+.foot-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.foot-links a { color: var(--sky-ink); }
+.foot-links .fb { padding: 8px 16px; border-radius: 999px; background: var(--accent); color: var(--on-accent); text-decoration: none; font-weight: 600; }
 .bloom { position: absolute; right: 20px; top: -18px; width: 54px; height: 70px; }
 details.group > summary { font-family: var(--font-display); }
 
@@ -344,8 +350,8 @@ details.group[open] > summary { margin-bottom: 10px; }
       <img class="logo" src="assets/odam-logo.webp" width="1024" height="1024" alt="오담 로고: 꽃에서 글자와 음표가 떨어지는 그림과 '오담, 오롯이 담' 글자">
       <div class="brand-text">
         <div class="eyebrow"><span>오롯이 담다</span></div>
-        <h1>소득 계층 변화 지도</h1>
-        <p class="lede">대한민국 가구를 소득 기준 상·중·하로 나눠 계층 비율의 변화를 보고, 내 상황에 맞는 전국·부산 지원 제도를 한 번에 찾아봅니다.</p>
+        <h1>내 상황에 맞는 지원, 같이 찾아요</h1>
+        <p class="lede">소득 격차가 30년 동안 어떻게 벌어졌는지 보고, 고민을 털어놓고, 받을 수 있는 정부·부산시 지원을 한 번에 찾아봅니다.</p>
       </div>
     </div>
   </header>
@@ -595,6 +601,12 @@ details.group[open] > summary { margin-bottom: 10px; }
       </ul>
     </section>
   </div>
+
+  <footer class="foot">
+    <p class="foot-help">도움이 급할 때: 보건복지상담센터 <b>129</b> · 자살예방 상담전화 <b>109</b> · 고용노동부 <b>1350</b> · 부산 120바로콜센터 <b>051-120</b></p>
+    <p>2026년 11월 24일 기준 자료입니다. 지원 결과는 예상이며 최종 판단은 담당 기관이 합니다. 법률·세무 상담이 아닙니다.</p>
+    <p class="foot-links"><span class="hand">오롯이 담다</span><a href="https://github.com/seo-h28/odam" target="_blank" rel="noopener">소스 코드</a><a class="fb" id="fb-link" href="#" target="_blank" rel="noopener" hidden>의견 보내기</a></p>
+  </footer>
 </div>
 
 <script>
@@ -1731,6 +1743,10 @@ details.group[open] > summary { margin-bottom: 10px; }
   $("w-mode").textContent = window.ODAM_API
     ? "이 화면은 운영자 컴퓨터의 AI가 답합니다. 답을 쓰는 데 1~2분 걸릴 수 있고, 적은 내용은 저장하지 않습니다."
     : "Claude에 로그인한 상태라면 본인 계정의 Claude가 답하고, 아니면 적은 말에서 고민 종류를 찾아 자동으로 답합니다. 이 화면은 적은 내용을 저장하지 않습니다.";
+
+  /* 의견 보내기: 의견 받는 양식(구글 폼 등) 주소를 넣으면 맨 아래에 버튼이 나타난다 */
+  var FEEDBACK_URL = "";
+  if (/^https:\/\//.test(FEEDBACK_URL)) { $("fb-link").href = FEEDBACK_URL; $("fb-link").hidden = false; }
 
   setRange(Y0, Y1);
   renderUnified(readUnified());
