@@ -4,11 +4,13 @@
   GET  /             docs/index.html(배포용 화면)을 보여 준다. 이 서버가 켜져 있다는 표시를 붙여서.
   GET  /api/health   서버와 Ollama가 살아 있는지 알려 준다.
   POST /api/ask      {program, rows, context, question} → {answer, model}
+  POST /api/worry    {messages, catalog} → {reply, ids, model}  고민을 듣고 관련 제도를 고른다
 
 실행: server 폴더에서  uvicorn app:app --port 8000
 """
 from __future__ import annotations
 
+import json
 import os
 import time
 from collections import defaultdict, deque
@@ -98,6 +100,63 @@ async def ask(body: Ask, request: Request) -> dict:
         raise HTTPException(503, f"AI 모델에 연결하지 못했습니다: {type(e).__name__}") from e
     text = r.json().get("message", {}).get("content", "").strip()
     return {"answer": text, "model": MODEL}
+
+
+class Msg(BaseModel):
+    role: str = Field(pattern="^(user|assistant)$")
+    content: str = Field(max_length=600)
+
+
+class Program(BaseModel):
+    id: str = Field(max_length=30)
+    name: str = Field(max_length=60)
+    cat: str = Field(default="", max_length=10)
+    scope: str = Field(default="전국", max_length=10)
+    summary: str = Field(default="", max_length=200)
+
+
+class Worry(BaseModel):
+    messages: list[Msg] = Field(min_length=1, max_length=12)
+    catalog: list[Program] = Field(max_length=40)
+
+
+WORRY_SYSTEM = (
+    "당신은 한국 정부 지원 제도 안내 서비스 '오담'의 상담 도우미입니다. 사용자가 털어놓는 고민을 먼저 공감하며 들어 주세요. "
+    "규칙: 1) 판단하거나 훈계하지 말고 감정을 먼저 알아준다. 2) 3~5문장, 쉬운 한국어. "
+    "3) [제도 목록]에서 도움이 될 제도를 최대 4개 고른다. 목록에 없는 제도는 지어내지 않는다. 4) 받을 수 있다고 단정하지 않는다. "
+    "5) 빚 고민이면 서민금융진흥원 1397을, 우울하거나 지친 마음이면 정신건강 위기상담전화 1577-0199를 안내한다. 6) 죽고 싶다, 자해 같은 위험 신호가 있으면 무엇보다 먼저 자살예방 상담전화 109에 전화하라고 따뜻하게 권한다. "
+    "7) 정보가 부족하면 한 가지만 부드럽게 되묻는다. "
+    '반드시 JSON으로만 답한다: {"reply": "답변", "ids": ["제도 id"]}'
+)
+
+
+@app.post("/api/worry")
+async def worry(body: Worry, request: Request) -> dict:
+    """고민을 듣고 공감하는 답과 관련 제도 id를 돌려준다. 대화 내용은 저장하지 않는다."""
+    ip = request.headers.get("cf-connecting-ip") or (request.client.host if request.client else "?")
+    check_rate(ip)
+    catalog = "\n".join(f"{p.id} | {p.name} | {p.cat} | {p.scope} | {p.summary}" for p in body.catalog)
+    messages = [{"role": "system", "content": WORRY_SYSTEM + "\n\n[제도 목록] id | 이름 | 분야 | 지역 | 요약\n" + catalog}]
+    messages += [{"role": m.role, "content": m.content} for m in body.messages[-8:]]
+    payload = {"model": MODEL, "stream": False, "format": "json", "messages": messages,
+               "options": {"temperature": 0.4, "num_predict": 450}}
+    try:
+        async with httpx.AsyncClient(timeout=165) as c:
+            r = await c.post(f"{OLLAMA_URL}/api/chat", json=payload)
+            r.raise_for_status()
+    except httpx.HTTPError as e:
+        raise HTTPException(503, f"AI 모델에 연결하지 못했습니다: {type(e).__name__}") from e
+    raw = r.json().get("message", {}).get("content", "")
+    try:
+        data = json.loads(raw)
+        reply, ids = str(data.get("reply", "")).strip(), data.get("ids", [])
+    except (ValueError, AttributeError):
+        reply, ids = raw.strip(), []
+    known = {p.id for p in body.catalog}
+    ids = [i for i in ids if isinstance(i, str) and i in known][:4] if isinstance(ids, list) else []
+    if not reply:
+        raise HTTPException(502, "AI가 빈 답을 보냈습니다.")
+    return {"reply": reply, "ids": ids, "model": MODEL}
 
 
 @app.get("/", response_class=HTMLResponse)
