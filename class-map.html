@@ -1101,22 +1101,37 @@ details.group[open] > summary { margin-bottom: 10px; }
     }).then(function () { btn.disabled = false; });
   }
 
-  /* 오담 질문 서버(내 컴퓨터의 Ollama)에 묻는다. 꺼져 있거나 늦으면 자동 안내로 답한다. */
+  /* 서버가 흘려보내는 글을 조각마다 받아 onText(지금까지 받은 전체 글)를 부른다 */
+  function readStream(r, onText) {
+    var reader = r.body.getReader(), dec = new TextDecoder(), acc = "";
+    function pump() {
+      return reader.read().then(function (x) {
+        if (x.done) { acc += dec.decode(); onText(acc); return acc; }
+        acc += dec.decode(x.value, { stream: true }); onText(acc); return pump();
+      });
+    }
+    return pump();
+  }
+  function streamPost(path, payload, signal) {
+    return fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, signal: signal, body: JSON.stringify(payload) })
+      .then(function (r) { if (!r.ok || !r.body) throw new Error(r.status); return r; });
+  }
+
+  /* 오담 질문 서버(내 컴퓨터의 Ollama)에 묻는다. 답은 쓰는 대로 보여 주고, 꺼져 있거나 늦으면 자동 안내로 답한다. */
   function askServer(p, ctx, q, out, btn) {
-    out.textContent = "AI가 답을 쓰는 중입니다. 최대 1분쯤 걸릴 수 있습니다...";
-    var ctl = new AbortController(), timer = setTimeout(function () { ctl.abort(); }, 90000);
-    fetch(window.ODAM_API, {
-      method: "POST", headers: { "Content-Type": "application/json" }, signal: ctl.signal,
-      body: JSON.stringify({ program: p.name, rows: p.rows, context: ctx, question: q })
-    }).then(function (r) {
-      if (!r.ok) throw new Error(r.status);
-      return r.json();
-    }).then(function (d) {
-      out.textContent = d.answer + "\n\n이 답은 AI(" + d.model + ")가 위 제도 정보를 바탕으로 쓴 것이라 틀릴 수 있습니다. 법률·세무 자문이 아니며 최종 판단은 담당 기관이 합니다. 문의: " + contactOf(p) + ".";
-    }).catch(function (e) {
-      var why = String(e && e.message) === "429" ? "AI 질문이 많아 잠시 쉬고 있어" : "AI 서버에 연결하지 못해";
-      out.textContent = why + " 자동 안내로 답합니다.\n\n" + localAnswer(p, q);
-    }).then(function () { clearTimeout(timer); btn.disabled = false; });
+    out.textContent = "AI가 답을 쓰기 시작하면 바로 보여 드릴게요...";
+    var ctl = new AbortController(), timer = setTimeout(function () { ctl.abort(); }, 120000), model = "AI";
+    streamPost(window.ODAM_API, { program: p.name, rows: p.rows, context: ctx, question: q }, ctl.signal)
+      .then(function (r) {
+        model = r.headers.get("X-Model") || model;
+        return readStream(r, function (t) { if (t.trim()) out.textContent = tidy(t); });
+      }).then(function (full) {
+        if (!full.trim() || /\[오류\]/.test(full)) throw new Error("model");
+        out.textContent = tidy(full) + "\n\n이 답은 AI(" + model + ")가 위 제도 정보를 바탕으로 쓴 것이라 틀릴 수 있습니다. 법률·세무 자문이 아니며 최종 판단은 담당 기관이 합니다. 문의: " + contactOf(p) + ".";
+      }).catch(function (e) {
+        var why = String(e && e.message) === "429" ? "AI 질문이 많아 잠시 쉬고 있어" : "AI 서버에 연결하지 못해";
+        out.textContent = why + " 자동 안내로 답합니다.\n\n" + localAnswer(p, q);
+      }).then(function () { clearTimeout(timer); btn.disabled = false; });
   }
 
   /* 제도별 공식 링크: [이름, 주소, 사이트에서 할 일] */
@@ -1673,22 +1688,19 @@ details.group[open] > summary { margin-bottom: 10px; }
       msgs.map(function (m) { return (m.role === "user" ? "사용자: " : "도우미: ") + m.content; }).join("\n");
   }
   // AI 답에서 굵은 글씨 기호와 내부 id 표기 "(kua)"를 지운다
-  function tidy(s) { return String(s).replace(/\*\*/g, "").replace(/\s*\((?:[a-z]+(?:-[a-z]+)?)\)/g, "").trim(); }
+  function tidy(s) {
+    return String(s).replace(/\*\*/g, "")
+      .replace(/\s*\((?:[a-z]+(?:-[a-z]+)?)\)/g, "")                       // "(kua)"
+      .replace(/\b[a-z]+(?:-[a-z]+)?\s+(?=[가-힣])/g, "")                   // "life 생계급여"
+      .replace(/\s*\((?:생활비|의료|주거|일자리|교육|목돈|교통)(?:,\s*부산)?\)/g, "") // "(생활비, 부산)"
+      .trim().replace(/[\[(]\s*$/, "").trim();
+  }
   function cleanIds(ids) {
     return (Array.isArray(ids) ? ids : []).filter(function (id, i, a) { return BY_ID[id] && a.indexOf(id) === i; }).slice(0, 4);
   }
 
   function getWorryAnswer(text) {
     var msgs = wHistory.slice(-8);
-    if (window.ODAM_API) {
-      var ctl = new AbortController(), t = setTimeout(function () { ctl.abort(); }, 170000);
-      return fetch(window.ODAM_API.replace(/ask$/, "worry"), {
-        method: "POST", headers: { "Content-Type": "application/json" }, signal: ctl.signal,
-        body: JSON.stringify({ messages: msgs, catalog: CATALOG })
-      }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-        .then(function (d) { clearTimeout(t); return { reply: tidy(d.reply), ids: cleanIds(d.ids), mode: "AI(" + d.model + ")" }; })
-        .catch(function () { clearTimeout(t); var l = localReply(text); l.mode = "AI 서버에 연결하지 못해 자동 응답"; return l; });
-    }
     return getSample().then(function (sample) {
       if (!sample || !sample.json) return localReply(text);
       return sample.json(worryPrompt(msgs), { cache: false }).then(function (v) {
@@ -1701,20 +1713,58 @@ details.group[open] > summary { margin-bottom: 10px; }
   function addMe(text) {
     var d = document.createElement("div"); d.className = "msg-me"; d.textContent = text; $("w-log").appendChild(d);
   }
-  function addAi(ans, risky) {
+  // 답 상자(누가 답하는지 + 위기 안내 + 말풍선)를 먼저 만든다. 스트리밍이면 말풍선을 나중에 채운다.
+  function aiShell(mode, risky) {
     var box = document.createElement("div"); box.className = "msg-ai";
-    var who = document.createElement("div"); who.className = "who"; who.textContent = "오담 · " + ans.mode;
+    var who = document.createElement("div"); who.className = "who"; who.textContent = "오담 · " + mode;
     box.appendChild(who);
     if (risky) {
       var c = document.createElement("div"); c.className = "wcrisis";
       c.textContent = "많이 힘든 마음이 느껴져요. 지금 바로 자살예방 상담전화 109(24시간)에 전화하면 이야기를 들어 줄 사람이 있어요. 위급하면 112나 119에 연락하세요.";
       box.appendChild(c);
     }
-    var b = document.createElement("div"); b.className = "bubble"; b.textContent = ans.reply; box.appendChild(b);
+    var b = document.createElement("div"); b.className = "bubble"; box.appendChild(b);
+    $("w-log").appendChild(box);
+    return { box: box, who: who, bubble: b };
+  }
+  function addAi(ans, risky) {
+    var s = aiShell(ans.mode, risky);
+    s.bubble.textContent = ans.reply;
+    addRelated(s.box, ans.ids);
+  }
+  // 오담 서버(Ollama)의 답을 쓰는 대로 말풍선에 보여 주고, 마지막 줄 "제도: id, id"로 카드를 붙인다
+  function streamWorry(text, risky) {
+    var s = aiShell("AI가 듣고 답을 쓰는 중이에요", risky);
+    s.bubble.textContent = "…";
+    var ctl = new AbortController(), timer = setTimeout(function () { ctl.abort(); }, 150000), model = "AI";
+    var visible = function (t) { return tidy(t.split(/\n?\s*제도\s*:/)[0]); };
+    return streamPost(window.ODAM_API.replace(/ask$/, "worry"), { messages: wHistory.slice(-6), catalog: CATALOG }, ctl.signal)
+      .then(function (r) {
+        model = r.headers.get("X-Model") || model;
+        return readStream(r, function (t) { var v = visible(t); if (v) s.bubble.textContent = v; });
+      }).then(function (full) {
+        var reply = visible(full);
+        if (!reply || /\[오류\]/.test(full)) throw new Error("model");
+        // "제도: kua-y, rent" 또는 "[제도: kua-y, rent]"처럼 와도 id만 골라낸다
+        var m = full.match(/제도\s*:\s*([^\n]+)/), ids = m ? cleanIds(m[1].split(/[^a-z-]+/)) : [];
+        if (!ids.length) ids = idsForCats(matchCats(text), text).slice(0, 4);
+        s.who.textContent = "오담 · AI(" + model + ")";
+        s.bubble.textContent = reply;
+        addRelated(s.box, ids);
+        return reply;
+      }).catch(function () {
+        var l = localReply(text);
+        s.who.textContent = "오담 · AI 서버에 연결하지 못해 자동 응답";
+        s.bubble.textContent = l.reply;
+        addRelated(s.box, l.ids);
+        return l.reply;
+      }).then(function (reply) { clearTimeout(timer); return reply; });
+  }
+  function addRelated(box, ids) {
+    var ans = { ids: ids };
     if (ans.ids.length) {
       var t = document.createElement("div"); t.className = "rel-t"; t.textContent = "도움이 될 만한 제도"; box.appendChild(t);
       var list = document.createElement("div"); list.className = "progs"; list.id = "w-p" + (++wCount); box.appendChild(list);
-      $("w-log").appendChild(box);
       renderCards(list.id, ans.ids.map(function (id) {
         var p = BY_ID[id];
         return { p: p, r: { st: "rel", pill: CAT[id] + " 지원", line: (p.rows[1] ? p.rows[1][1] : "").split(". ")[0] + "." } };
@@ -1727,8 +1777,6 @@ details.group[open] > summary { margin-bottom: 10px; }
         showTab("find");
       };
       box.appendChild(go);
-    } else {
-      $("w-log").appendChild(box);
     }
   }
 
@@ -1748,13 +1796,12 @@ details.group[open] > summary { margin-bottom: 10px; }
     addMe(text); wHistory.push({ role: "user", content: text.slice(0, 600) });
     $("w-text").value = ""; updCount();
     var btn = $("w-send"); btn.disabled = true; btn.textContent = "듣는 중...";
-    getWorryAnswer(text).then(function (ans) {
-      wHistory.push({ role: "assistant", content: ans.reply.slice(0, 600) });
-      addAi(ans, risky);
-    }).then(function () { btn.disabled = false; btn.textContent = "보내기"; });
+    var done = function (reply) { wHistory.push({ role: "assistant", content: String(reply).slice(0, 600) }); btn.disabled = false; btn.textContent = "보내기"; };
+    if (window.ODAM_API) { streamWorry(text, risky).then(done); return; }
+    getWorryAnswer(text).then(function (ans) { addAi(ans, risky); done(ans.reply); });
   });
   $("w-mode").textContent = window.ODAM_API
-    ? "이 화면은 운영자 컴퓨터의 AI가 답합니다. 답을 쓰는 데 1~2분 걸릴 수 있고, 적은 내용은 저장하지 않습니다."
+    ? "이 화면은 운영자 컴퓨터의 AI가 답합니다. 답은 쓰는 대로 바로 보여 드리고, 적은 내용은 저장하지 않습니다."
     : "Claude에 로그인한 상태라면 본인 계정의 Claude가 답하고, 아니면 적은 말에서 고민 종류를 찾아 자동으로 답합니다. 이 화면은 적은 내용을 저장하지 않습니다.";
 
   /* 의견 보내기: 의견 받는 양식(구글 폼 등) 주소를 넣으면 맨 아래에 버튼이 나타난다 */
