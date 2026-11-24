@@ -1,32 +1,47 @@
 <title>소득 계층 변화 지도</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=Black+Han+Sans&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Jua&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
 <style>
-/* Layout: 상단 탭(계층 지도 / 내 지원 제도 찾기). 지도 탭은 도형+수치, 구간 선택, 변화 이유. 지원 탭은 입력 폼+제도 카드 */
+/* 시안 C "꽃밭 손글씨"를 로고 배경 하늘색 톤으로: 바탕·선택·글자 강조는 하늘, 꽃(빨강)은 버튼·하층, 잎(초록)은 중층·충족 표시.
+   레이아웃: 위에 붙는 알약 모양 탭 / 계층 지도(이야기 + 100가구 꽃잎 그림) / 고민이 있어요 / 내 지원 찾기 */
 :root {
-  --bg: #F3F4F6;
+  --bg: #EDF3F8;          /* 로고 배경 하늘을 아주 옅게 */
   --surface: #FFFFFF;
-  --fg: #1B2230;
-  --muted: #5C6678;
-  --line: #D5D9E0;
-  --hi: #2F4B7C;
-  --mid: #86AAA3;
-  --lo: #D9822B;
-  --accent: #D9822B;
-  --ok: #2B7A57;
+  --fg: #16212B;          /* 로고 글자처럼 짙은 먹색 */
+  --muted: #4B5B69;
+  --line: #D2DFE9;
+  --soft: #E0EBF3;        /* 칩·연한 칸 */
+  --sky: #8FB1CB;         /* 로고 배경 하늘 (선택된 탭·칩) */
+  --sky-soft: #D3E3EF;
+  --sky-ink: #2C5272;     /* 글자로 쓰는 하늘 */
+  --flower-soft: #FCE4DF;
+  --hi: #3F6280;          /* 상층 = 짙은 하늘 */
+  --mid: #A8D58E;         /* 중층 = 잎 */
+  --lo: #E4523B;          /* 하층 = 꽃 */
+  --leaf: #A8D58E;
+  --leaf-ink: #2E6A3F;    /* 글자로 쓰는 초록 */
+  --accent: #C93A24;      /* 버튼(흰 글자와 대비 5:1) */
+  --on-accent: #FFFFFF;
+  --flower-ink: #A3311F;
+  --ok: #2E6A3F;
   --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-  --font-display: "Black Han Sans", "IBM Plex Sans KR", "Apple SD Gothic Neo", sans-serif;
+  --font-display: "Jua", "IBM Plex Sans KR", "Apple SD Gothic Neo", sans-serif;
+  --font-hand: "Gaegu", "Jua", cursive;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #12161E; --surface: #1B2130; --fg: #E8EBF1; --muted: #9AA3B5; --line: #343C4E;
-    --hi: #7C9BD6; --mid: #5E8A83; --lo: #F0A04B; --accent: #F0A04B; --ok: #5FC49A; color-scheme: dark;
+    --bg: #111922; --surface: #1A2531; --fg: #E7EEF4; --muted: #A2B1BF; --line: #2B3A48;
+    --soft: #213141; --sky: #6F93B0; --sky-soft: #263A4C; --sky-ink: #A9C8E0; --flower-soft: #3A2420;
+    --hi: #8FB3CF; --mid: #7FB36A; --lo: #F06A52; --leaf: #6FA35C; --leaf-ink: #9BD18A;
+    --accent: #F07A62; --on-accent: #131A15; --flower-ink: #F4A291; --ok: #9BD18A; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #12161E; --surface: #1B2130; --fg: #E8EBF1; --muted: #9AA3B5; --line: #343C4E;
-  --hi: #7C9BD6; --mid: #5E8A83; --lo: #F0A04B; --accent: #F0A04B; --ok: #5FC49A; color-scheme: dark;
+  --bg: #111922; --surface: #1A2531; --fg: #E7EEF4; --muted: #A2B1BF; --line: #2B3A48;
+  --soft: #213141; --sky: #6F93B0; --sky-soft: #263A4C; --sky-ink: #A9C8E0; --flower-soft: #3A2420;
+  --hi: #8FB3CF; --mid: #7FB36A; --lo: #F06A52; --leaf: #6FA35C; --leaf-ink: #9BD18A;
+  --accent: #F07A62; --on-accent: #131A15; --flower-ink: #F4A291; --ok: #9BD18A; color-scheme: dark;
 }
 body { background: var(--bg); color: var(--fg); font-family: var(--font-body); padding-inline: 16px; padding-block: 24px 40px; line-height: 1.55; }
 .wrap { max-width: 1040px; margin-inline: auto; display: flex; flex-direction: column; gap: 20px; }
@@ -71,7 +86,7 @@ svg text { font-family: var(--font-body); }
 .controls { display: flex; flex-direction: column; gap: 14px; }
 .row { display: flex; align-items: center; gap: 14px; }
 .wraprow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
-.play { font: inherit; font-weight: 600; min-width: 92px; padding: 8px 14px; border-radius: 8px; border: 0; background: var(--accent); color: #1B2230; cursor: pointer; flex: none; }
+.play { font: inherit; font-weight: 600; min-width: 92px; padding: 8px 14px; border-radius: 8px; border: 0; background: var(--accent); color: var(--on-accent); cursor: pointer; flex: none; }
 .slide { position: relative; flex: 1; min-width: 0; padding-bottom: 22px; }
 input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
 .ticks { position: absolute; left: 0; right: 0; bottom: 0; height: 18px; font-size: 11px; color: var(--muted); }
@@ -185,6 +200,72 @@ select option { color: var(--fg); }
 }
 @media (prefers-reduced-motion: reduce) { .d, .step { transition: none; } }
 
+/* ===== 시안 C 모양: 둥근 카드, 알약 탭·칩, 꽃잎 점, 손글씨 한 줄 ===== */
+h1, h2.gh, .worry h2, .step h2, .map-more { font-family: var(--font-display); font-weight: 400; }
+h1 { font-size: clamp(30px, 5vw, 44px); }
+.hand { font-family: var(--font-hand); font-size: 19px; color: var(--sky-ink); line-height: 1.3; }
+.logo { border-radius: 50%; box-shadow: none; }
+.eyebrow b { font-family: var(--font-display); font-size: 22px; }
+.eyebrow span { font-family: var(--font-hand); font-size: 20px; color: var(--sky-ink); letter-spacing: 0; }
+
+.tabs { width: fit-content; max-width: 100%; box-sizing: border-box; gap: 4px; padding: 6px; border: 0; border-radius: 999px; background: var(--surface); box-shadow: 0 0 0 6px var(--bg); top: calc(env(safe-area-inset-top, 0px) + 8px); }
+.tabs button { padding: 9px 18px; margin: 0; border: 0; border-radius: 999px; color: var(--fg); font-weight: 500; }
+.tabs button[aria-selected="true"] { background: var(--sky); color: #16201A; font-weight: 700; }
+
+.panel { border: 0; border-radius: 24px; }
+.prog { border: 0; border-radius: 22px; }
+.prog-head { border-radius: 22px; }
+.prog-body { border-top: 1px dashed var(--line); }
+.msg, .ask { border-radius: 18px; }
+.ask { background: var(--bg); }
+
+.play { color: var(--on-accent); background: var(--accent); border-radius: 999px; padding: 10px 22px; }
+.chip { border: 0; background: var(--soft); color: var(--fg); padding: 7px 14px; }
+.chip:hover { background: var(--sky-soft); }
+.chip[aria-pressed="true"] { background: var(--sky); color: #16201A; border: 0; }
+.seg { border: 0; background: var(--soft); border-radius: 999px; padding: 4px; }
+.seg button { border-radius: 999px; }
+
+select, input[type=number], input[type=text] { border: 2px solid var(--line); border-radius: 14px; background: var(--surface); }
+.ask input[type=text], .wform textarea { border: 2px solid var(--line); border-radius: 18px; }
+
+.pill { border: 0; padding: 3px 12px; font-weight: 600; }
+.pill.ok { background: var(--leaf); color: #16201A; }
+.pill.check { background: var(--flower-soft); color: var(--flower-ink); }
+.pill.later, .pill.rel { background: var(--sky-soft); color: var(--fg); }
+.pill.over, .pill.na { background: transparent; border: 1.5px dashed var(--line); color: var(--muted); font-weight: 500; }
+.ptags span { border: 0; background: var(--soft); color: var(--muted); }
+.ptags .scope.busan { background: var(--sky-soft); color: var(--fg); }
+
+.olink { border: 0; background: var(--soft); border-radius: 16px; }
+.olink:hover { background: var(--sky-soft); }
+.olink .on { color: var(--sky-ink); }
+.notes a, .badge.src, .tag.data { color: var(--sky-ink); border-color: var(--sky-ink); }
+.tag.interp { color: var(--flower-ink); border-color: var(--flower-ink); }
+.badge { border: 0; background: var(--soft); }
+
+.d { border-radius: 50% 50% 50% 18%; }
+.sv-legend i { border-radius: 50% 50% 50% 18%; }
+.step-y { align-self: flex-start; padding: 4px 12px; border-radius: 999px; background: var(--soft); color: var(--sky-ink); letter-spacing: 0; }
+.sv-year { font-family: var(--font-display); }
+.me-out { border: 0; background: var(--soft); border-radius: 18px; }
+
+.worry { position: relative; }
+.wlede { font-family: var(--font-hand); font-size: 20px; color: var(--sky-ink); }
+.msg-me { background: var(--surface); border: 2px solid var(--line); border-radius: 22px 22px 6px 22px; }
+.msg-ai .bubble { background: var(--soft); border: 0; border-radius: 22px 22px 22px 6px; }
+.wcrisis { border: 0; background: var(--flower-soft); border-radius: 16px; }
+.crisisline { border: 0; background: var(--flower-soft); }
+.sv-hand { margin: 0; }
+.bloom { position: absolute; right: 20px; top: -18px; width: 54px; height: 70px; }
+details.group > summary { font-family: var(--font-display); }
+
+@media (max-width: 600px) {
+  .tabs { width: 100%; }
+  .tabs button { flex: 1 1 auto; padding: 9px 6px; font-size: 13px; }
+  .bloom, .sv-hand { display: none; }
+}
+
 /* 고민이 있어요 */
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .worry { display: flex; flex-direction: column; gap: 14px; max-width: 760px; }
@@ -261,7 +342,7 @@ details.group[open] > summary { margin-bottom: 10px; }
     <div class="brand">
       <img class="logo" src="assets/odam-logo.webp" width="1024" height="1024" alt="오담 로고: 꽃에서 글자와 음표가 떨어지는 그림과 '오담, 오롯이 담' 글자">
       <div class="brand-text">
-        <div class="eyebrow"><b>오담</b><span>오롯이 담다</span></div>
+        <div class="eyebrow"><span>오롯이 담다</span></div>
         <h1>소득 계층 변화 지도</h1>
         <p class="lede">대한민국 가구를 소득 기준 상·중·하로 나눠 계층 비율의 변화를 보고, 내 상황에 맞는 전국·부산 지원 제도를 한 번에 찾아봅니다.</p>
       </div>
@@ -286,6 +367,7 @@ details.group[open] > summary { margin-bottom: 10px; }
           <span><i class="d mid"></i>중층 <b id="sv-mid">75</b></span>
           <span><i class="d lo"></i>하층 <b id="sv-lo">7</b></span>
         </div>
+        <p class="hand sv-hand">↑ 한 칸이 한 가구예요</p>
         <p class="sv-cap">한국 가구를 100가구로 줄였을 때입니다. 중위소득 50% 미만은 하층, 50~150%는 중층, 150% 초과는 상층.</p>
       </div>
       <div class="story-steps">
@@ -422,8 +504,13 @@ details.group[open] > summary { margin-bottom: 10px; }
 
   <div class="inner" id="tab-worry" role="tabpanel" aria-labelledby="tb-worry" hidden>
     <section class="panel worry">
+      <svg class="bloom" viewBox="0 0 54 70" aria-hidden="true">
+        <path d="M27 68 C 22 50, 34 40, 27 24" fill="none" stroke="#5BA864" stroke-width="2.5" stroke-linecap="round"></path>
+        <path d="M28 46 C 38 40, 44 44, 46 38 C 38 36, 32 40, 28 46 Z" fill="#A8D58E"></path>
+        <path d="M14 18 C 14 6, 22 2, 27 8 C 32 2, 40 6, 40 18 C 36 26, 18 26, 14 18 Z" fill="#E4523B"></path>
+      </svg>
       <h2>어떤 일이 힘드세요?</h2>
-      <p class="wlede">편하게 털어놓으세요. 먼저 끝까지 듣고, 도움이 될 만한 정부·부산시 제도를 같이 찾아볼게요. 제도 이름을 몰라도 괜찮습니다.</p>
+      <p class="wlede">편하게 털어놓아요. 끝까지 듣고, 도움이 될 제도를 같이 찾아볼게요.</p>
       <div class="chips" id="w-starters" aria-label="고민 예시"></div>
       <div class="wlog" id="w-log" aria-live="polite"></div>
       <form class="wform" id="wform">
@@ -608,7 +695,7 @@ details.group[open] > summary { margin-bottom: 10px; }
     [R * Math.sqrt(base.hi / 100), R * Math.sqrt((base.hi + base.mid) / 100)].forEach(function (r) {
       svg.appendChild(el("circle", { cx: cx, cy: cy, r: r, fill: "none", stroke: "var(--fg)", "stroke-width": 1, "stroke-dasharray": "4 4", opacity: 0.55 }));
     });
-    svg.appendChild(label(cx, cy, "상", "#fff"));
+    svg.appendChild(label(cx, cy, "상", "var(--surface)"));
     svg.appendChild(label(cx, cy - (r1 + r2) / 2, "중", "#10201D"));
     if (r3 - r2 > 16) svg.appendChild(label(cx, cy - (r2 + r3) / 2, "하", "#1B2230"));
     else svg.appendChild(el("text", { x: cx + r3 + 12, y: cy, "dominant-baseline": "middle", "font-size": 15, "font-weight": 600, fill: "var(--lo)" }, "하"));
@@ -628,7 +715,7 @@ details.group[open] > summary { margin-bottom: 10px; }
     [edge(base.hi), edge(base.hi + base.mid)].forEach(function (o) {
       svg.appendChild(el("line", { x1: cx - o.hw, x2: cx + o.hw, y1: o.y, y2: o.y, stroke: "var(--fg)", "stroke-width": 1, "stroke-dasharray": "4 4", opacity: 0.55 }));
     });
-    if (e1.y - top > 40) svg.appendChild(label(cx, top + (e1.y - top) * 0.62, "상", "#fff"));
+    if (e1.y - top > 40) svg.appendChild(label(cx, top + (e1.y - top) * 0.62, "상", "var(--surface)"));
     if (e2.y - e1.y > 22) svg.appendChild(label(cx, (e1.y + e2.y) / 2, "중", "#10201D"));
     if (e3.y - e2.y > 22) svg.appendChild(label(cx, (e2.y + e3.y) / 2, "하", "#1B2230"));
     else svg.appendChild(el("text", { x: cx + e3.hw + 8, y: bot - 8, "font-size": 15, "font-weight": 600, fill: "var(--lo)" }, "하"));
