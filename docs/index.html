@@ -124,6 +124,14 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
 .prog-body dt { color: var(--muted); }
 .prog-body dd { margin: 0; overflow-wrap: anywhere; }
 @media (max-width: 480px) { .prog-body dl { grid-template-columns: minmax(0, 1fr); gap: 2px; } .prog-body dd { margin-bottom: 8px; } }
+.olinks { display: flex; flex-direction: column; gap: 8px; }
+.olinks .t { font-size: 13px; font-weight: 600; }
+.olink-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.olink { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 8px 12px; border: 1px solid var(--hi); border-radius: 8px; text-decoration: none; color: var(--fg); }
+.olink:hover { background: var(--bg); }
+.olink:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.olink .on { font-weight: 600; color: var(--hi); font-size: 14px; }
+.olink .oh { font-size: 12px; color: var(--muted); }
 .ask { display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--bg); border-radius: 8px; }
 .ask .t { font-size: 13px; font-weight: 600; }
 .ask .how { font-size: 12px; color: var(--muted); }
@@ -684,6 +692,26 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
     }).then(function () { clearTimeout(timer); btn.disabled = false; });
   }
 
+  /* 제도별 공식 링크: [이름, 주소, 사이트에서 할 일] */
+  var BOKJIRO = ["복지로", "https://www.bokjiro.go.kr", "온라인 신청과 모의계산"];
+  var C129 = ["보건복지상담센터 129", "https://www.129.go.kr", "전화 129로 상담"];
+  var WORK24 = ["고용24", "https://www.work24.go.kr", "검색창에 제도 이름 입력"];
+  var YOUTH = ["온통청년", "https://www.youthcenter.go.kr", "청년 정책 통합 검색"];
+  var LINKS = {
+    life: [BOKJIRO, C129],
+    med: [BOKJIRO, C129],
+    house: [["마이홈포털", "https://www.myhome.go.kr", "주거급여 안내와 자가진단"], BOKJIRO],
+    edu: [["교육비 원클릭 신청", "https://oneclick.neis.go.kr", "교육급여 온라인 신청"], BOKJIRO],
+    eitc: [["국세청 홈택스", "https://www.hometax.go.kr", "근로·자녀장려금 신청"], ["국세청", "https://www.nts.go.kr", "근로장려금 제도 안내"]],
+    kua: [["국민취업지원제도", "https://www.kua.go.kr", "제도 안내와 자가진단"], ["정부24 안내", "https://www.gov.kr/portal/rcvfvrSvc/dtlEx/149200005007", "대상과 지원 내용 요약"]],
+    "kua-y": [["국민취업지원제도", "https://www.kua.go.kr", "청년특례와 자가진단"], ["정부24 안내", "https://www.gov.kr/portal/rcvfvrSvc/dtlEx/149200005007", "대상과 지원 내용 요약"]],
+    challenge: [WORK24, YOUTH],
+    intern: [WORK24, YOUTH],
+    card: [WORK24],
+    leap: [["고용노동부 보도자료", "https://www.moel.go.kr/news/enews/report/enewsView.do?news_seq=18886", "2026년 개편 내용"], WORK24],
+    didimdol: [["부산 청년 디딤돌 카드", "https://youthdidimdol.kr", "모집 공고와 신청"], YOUTH]
+  };
+
   var SUG = ["소득인정액이 뭐예요?", "신청하려면 무엇을 준비해야 하나요?", "탈락하면 어떻게 하나요?"];
 
   var ORDER = { ok: 0, check: 1, later: 2, over: 3, na: 4 };
@@ -723,6 +751,20 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
       head.appendChild(nm); head.appendChild(pill); head.appendChild(ln);
       var body = document.createElement("div"); body.className = "prog-body"; body.id = "pb-" + boxId + "-" + p.id; body.hidden = true;
       head.setAttribute("aria-controls", body.id);
+      var links = LINKS[p.id] || [];
+      if (links.length) {
+        var lk = document.createElement("div"); lk.className = "olinks";
+        var lt = document.createElement("div"); lt.className = "t"; lt.textContent = "공식 사이트에서 알아보기";
+        lk.appendChild(lt);
+        var lrow = document.createElement("div"); lrow.className = "olink-row";
+        links.forEach(function (l) {
+          var a = document.createElement("a"); a.className = "olink"; a.href = l[1]; a.target = "_blank"; a.rel = "noopener";
+          var n = document.createElement("span"); n.className = "on"; n.textContent = l[0] + " ↗";
+          var h = document.createElement("span"); h.className = "oh"; h.textContent = l[2];
+          a.appendChild(n); a.appendChild(h); lrow.appendChild(a);
+        });
+        lk.appendChild(lrow); body.appendChild(lk);
+      }
       var dlE = document.createElement("dl");
       p.rows.forEach(function (row) {
         var dt = document.createElement("dt"); dt.textContent = row[0];
