@@ -1,0 +1,968 @@
+<title>소득 계층 변화 지도</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=Black+Han+Sans&display=swap" rel="stylesheet">
+<style>
+/* Layout: 상단 탭(계층 지도 / 내 지원 제도 찾기). 지도 탭은 도형+수치, 구간 선택, 변화 이유. 지원 탭은 입력 폼+제도 카드 */
+:root {
+  --bg: #F3F4F6;
+  --surface: #FFFFFF;
+  --fg: #1B2230;
+  --muted: #5C6678;
+  --line: #D5D9E0;
+  --hi: #2F4B7C;
+  --mid: #86AAA3;
+  --lo: #D9822B;
+  --accent: #D9822B;
+  --ok: #2B7A57;
+  --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-display: "Black Han Sans", "IBM Plex Sans KR", "Apple SD Gothic Neo", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161E; --surface: #1B2130; --fg: #E8EBF1; --muted: #9AA3B5; --line: #343C4E;
+    --hi: #7C9BD6; --mid: #5E8A83; --lo: #F0A04B; --accent: #F0A04B; --ok: #5FC49A; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161E; --surface: #1B2130; --fg: #E8EBF1; --muted: #9AA3B5; --line: #343C4E;
+  --hi: #7C9BD6; --mid: #5E8A83; --lo: #F0A04B; --accent: #F0A04B; --ok: #5FC49A; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); padding-inline: 16px; padding-block: 24px 40px; line-height: 1.55; }
+.wrap { max-width: 1040px; margin-inline: auto; display: flex; flex-direction: column; gap: 20px; }
+.inner { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(28px, 5vw, 42px); margin: 0; line-height: 1.15; text-wrap: balance; }
+h2 { font-size: 16px; margin: 0 0 8px; }
+.lede { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
+.brand { display: flex; align-items: center; gap: 20px; }
+.brand-text { min-width: 0; }
+.logo { width: 112px; height: 112px; flex: none; border-radius: 22px; display: block; box-shadow: 0 0 0 1px var(--line); }
+.eyebrow { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; font-size: 13px; color: var(--muted); letter-spacing: 0.04em; }
+.eyebrow b { font-family: var(--font-display); font-weight: 400; font-size: 18px; color: var(--fg); letter-spacing: 0.02em; }
+@media (max-width: 560px) { .brand { gap: 14px; align-items: flex-start; } .logo { width: 64px; height: 64px; border-radius: 14px; } }
+.tabs { display: flex; gap: 4px; margin-top: 16px; border-bottom: 1px solid var(--line); }
+.tabs { overflow-x: auto; scrollbar-width: none; }
+@media (max-width: 480px) { .tabs button { padding-inline: 10px; } }
+.tabs button { white-space: nowrap; flex: none; font: inherit; font-weight: 500; padding: 10px 16px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--muted); cursor: pointer; margin-bottom: -1px; }
+.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+.stage { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: stretch; }
+@media (max-width: 760px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+.chart-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { font: inherit; font-size: 14px; padding: 6px 14px; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.year { font-family: var(--font-display); font-size: clamp(40px, 8vw, 64px); line-height: 1; font-variant-numeric: tabular-nums; }
+.badge { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.badge.src { color: var(--hi); border-color: var(--hi); }
+svg.map { width: 100%; height: auto; max-height: 460px; display: block; }
+svg text { font-family: var(--font-body); }
+.tiles { display: flex; flex-direction: column; gap: 10px; }
+.tile { display: grid; grid-template-columns: 10px 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.tile:last-child { border-bottom: 0; }
+.tile i { width: 10px; height: 40px; border-radius: 2px; }
+.tile .name { font-weight: 600; }
+.tile .desc { font-size: 13px; color: var(--muted); }
+.tile .val { font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.tile .delta { font-size: 13px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.msg { margin: 12px 0 0; padding: 12px; background: var(--bg); border-radius: 8px; font-size: 14px; }
+.controls { display: flex; flex-direction: column; gap: 14px; }
+.row { display: flex; align-items: center; gap: 14px; }
+.wraprow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.play { font: inherit; font-weight: 600; min-width: 92px; padding: 8px 14px; border-radius: 8px; border: 0; background: var(--accent); color: #1B2230; cursor: pointer; flex: none; }
+.slide { position: relative; flex: 1; min-width: 0; padding-bottom: 22px; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
+.ticks { position: absolute; left: 0; right: 0; bottom: 0; height: 18px; font-size: 11px; color: var(--muted); }
+.ticks span { position: absolute; transform: translateX(-50%); font-variant-numeric: tabular-nums; }
+.ticks span.d::before { content: ""; position: absolute; left: 50%; top: -9px; width: 1px; height: 6px; background: var(--hi); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; }
+.chip:hover { border-color: var(--accent); }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--bg); font-weight: 600; }
+select, input[type=number], input[type=text] { font: inherit; font-size: 14px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--fg); min-width: 0; }
+label.f { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+.check { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+.event { font-size: 14px; color: var(--muted); min-height: 1.6em; }
+.event b { color: var(--fg); }
+.rangesum { font-size: 14px; }
+.why ul { margin: 8px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.why li { display: grid; grid-template-columns: auto 1fr; gap: 10px; font-size: 14px; min-width: 0; }
+.why li span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.tag { font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); height: fit-content; white-space: nowrap; }
+.tag.data { color: var(--hi); border-color: var(--hi); }
+.tag.interp { color: var(--accent); border-color: var(--accent); }
+.facts { font-size: 14px; color: var(--muted); margin: 0; }
+details.crit { font-size: 14px; }
+details.crit summary { cursor: pointer; font-weight: 600; }
+details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; color: var(--muted); }
+.notes { font-size: 13px; color: var(--muted); }
+.notes h2 { font-size: 14px; color: var(--fg); margin: 0 0 6px; }
+.notes ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.notes li { min-width: 0; overflow-wrap: anywhere; }
+.notes a { color: var(--hi); }
+/* 지원 제도 탭 */
+.form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; }
+.form .hint { flex-basis: 100%; margin: 0; font-size: 13px; color: var(--muted); }
+.sumline { font-size: 15px; margin: 0; }
+.sumline b { font-variant-numeric: tabular-nums; }
+.caution { font-size: 13px; color: var(--muted); margin: 0; }
+.progs { display: flex; flex-direction: column; gap: 10px; }
+.prog { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.prog-head { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; text-align: left; font: inherit; color: var(--fg); background: transparent; border: 0; padding: 14px 16px; cursor: pointer; align-items: center; }
+.prog-head .pname { font-weight: 600; font-size: 16px; }
+.prog-head .pline { grid-column: 1 / -1; font-size: 13px; color: var(--muted); }
+.pill { font-size: 12px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.pill.ok { color: var(--ok); border-color: var(--ok); font-weight: 600; }
+.pill.check { color: var(--accent); border-color: var(--accent); }
+.pill.over, .pill.na { color: var(--muted); }
+.pill.na { border-style: dashed; }
+.pill.later { color: var(--hi); border-color: var(--hi); border-style: dashed; }
+.prog-body { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 14px; border-top: 1px solid var(--line); padding-top: 14px; }
+.prog-body dl { margin: 0; display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 8px 14px; font-size: 14px; }
+.prog-body dt { color: var(--muted); }
+.prog-body dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 480px) { .prog-body dl { grid-template-columns: minmax(0, 1fr); gap: 2px; } .prog-body dd { margin-bottom: 8px; } }
+.ask { display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--bg); border-radius: 8px; }
+.ask .t { font-size: 13px; font-weight: 600; }
+.ask .how { font-size: 12px; color: var(--muted); }
+.ask .qrow { display: flex; gap: 8px; }
+.ask input[type=text] { flex: 1; }
+.answer { margin: 0; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.answer:empty { display: none; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <img class="logo" src="assets/odam-logo.webp" width="1024" height="1024" alt="오담 로고: 꽃에서 글자와 음표가 떨어지는 그림과 '오담, 오롯이 담' 글자">
+      <div class="brand-text">
+        <div class="eyebrow"><b>오담</b><span>오롯이 담다</span></div>
+        <h1>소득 계층 변화 지도</h1>
+        <p class="lede">대한민국 가구를 소득 기준 상·중·하로 나눠 계층 비율의 변화를 보고, 내 소득으로 받을 수 있는 지원 제도와 청년 취업 지원 제도를 찾아봅니다.</p>
+      </div>
+    </div>
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tb-map" aria-selected="true" aria-controls="tab-map">계층 지도</button>
+      <button role="tab" id="tb-sup" aria-selected="false" aria-controls="tab-sup">소득별 지원 제도</button>
+      <button role="tab" id="tb-youth" aria-selected="false" aria-controls="tab-youth">청년 취업 지원</button>
+    </div>
+  </header>
+
+  <div class="inner" id="tab-map" role="tabpanel" aria-labelledby="tb-map">
+    <section class="stage">
+      <div class="panel">
+        <div class="chart-head">
+          <div class="seg" role="group" aria-label="도형 선택">
+            <button id="btn-circle" aria-pressed="true">동심원</button>
+            <button id="btn-pyr" aria-pressed="false">피라미드</button>
+          </div>
+          <div style="text-align:right">
+            <div class="year" id="year">1990</div>
+            <span class="badge" id="basis"></span>
+          </div>
+        </div>
+        <svg class="map" id="map" viewBox="0 0 520 420" role="img" aria-label="상중하 계층 비율 도형"></svg>
+        <div style="font-size:12px;color:var(--muted)">도형의 면적이 계층 비율과 같습니다. 점선은 선택한 구간의 시작 연도 경계입니다.</div>
+      </div>
+
+      <div class="panel">
+        <div class="tiles">
+          <div class="tile"><i style="background:var(--hi)"></i><div><div class="name">상층</div><div class="desc">중위소득 150% 초과</div></div><div><div class="val" id="v-hi">0%</div><div class="delta" id="d-hi"></div></div></div>
+          <div class="tile"><i style="background:var(--mid)"></i><div><div class="name">중층</div><div class="desc">중위소득 50~150%</div></div><div><div class="val" id="v-mid">0%</div><div class="delta" id="d-mid"></div></div></div>
+          <div class="tile"><i style="background:var(--lo)"></i><div><div class="name">하층</div><div class="desc">중위소득 50% 미만</div></div><div><div class="val" id="v-lo">0%</div><div class="delta" id="d-lo"></div></div></div>
+        </div>
+        <p class="msg" id="msg"></p>
+      </div>
+    </section>
+
+    <section class="panel controls">
+      <div class="wraprow">
+        <label class="f" for="sel-start">시작 연도<select id="sel-start"></select></label>
+        <label class="f" for="sel-end">끝 연도<select id="sel-end"></select></label>
+        <div class="chips" id="presets" aria-label="구간 바로 선택"></div>
+      </div>
+      <div class="rangesum" id="range-sum"></div>
+      <div class="row">
+        <button class="play" id="play">▶ 재생</button>
+        <div class="slide">
+          <input type="range" id="slider" min="1990" max="2019" step="0.25" value="1990" aria-label="연도">
+          <div class="ticks" id="ticks"></div>
+        </div>
+      </div>
+      <label class="check" for="loop"><input type="checkbox" id="loop" checked> 구간을 반복 재생</label>
+      <div class="chips" id="chips"></div>
+      <div class="event" id="event"></div>
+    </section>
+
+    <section class="panel why" aria-live="polite">
+      <h2 id="why-title"></h2>
+      <p class="facts" id="why-facts"></p>
+      <ul id="why-list"></ul>
+    </section>
+
+    <section class="panel">
+      <details class="crit">
+        <summary>계층을 나누는 기준과 중위소득이 변하는 이유</summary>
+        <ul>
+          <li>중위소득은 모든 가구를 소득순으로 세웠을 때 한가운데 가구의 소득입니다. 이 지도는 중위소득의 50% 미만을 하층, 50~150%를 중층, 150% 초과를 상층으로 나눕니다(OECD가 쓰는 방식).</li>
+          <li>경계선이 중위소득을 따라 움직이는 상대 기준입니다. 모든 가구의 소득이 같은 비율로 오르면 비율은 그대로이고, 소득 격차가 벌어지면 중층이 줄고 양 끝이 늘어납니다.</li>
+          <li>기준을 바꾸면 비율도 달라집니다. 예를 들어 같은 연도라도 조사 종류(가계동향조사, 가계금융복지조사)와 소득 정의(시장소득, 가처분소득)에 따라 중층 비중이 다릅니다.</li>
+          <li>복지 제도에 쓰는 기준 중위소득은 정부가 해마다 정합니다. 2026년 1인 가구는 월 2,564,238원으로 전년보다 7.20% 올랐습니다.</li>
+          <li>경제적 요소는 임금(소득)과 순자산 두 가지가 핵심인데, 이 지도는 소득만 반영합니다. 순자산 기준 상·중·하는 별도 통계를 확보해 다음 단계에서 더할 수 있습니다.</li>
+        </ul>
+      </details>
+    </section>
+
+    <section class="panel notes">
+      <h2>수치 출처와 읽는 법</h2>
+      <ul>
+        <li>1990년·2010년: 통계청 도시 2인 이상 가구 기준, 경향신문 기고(2011)에 인용된 수치.</li>
+        <li>2012년: 통계청 발표를 인용한 현대경제연구원 보고서(2013). 중산층 65.0%, 고소득층 20.3%, 나머지를 저소득층으로 계산.</li>
+        <li>2015~2019년: 기획재정부 2분기 기준 중위소득 50~150% 가구 비중(한국경제 보도). 조사와 기준이 달라 앞 수치와 직접 비교는 어렵습니다. 상·하 비율은 2012년 비율로 나눈 추정값입니다.</li>
+        <li>수치가 없는 연도는 가까운 두 수치를 직선으로 이은 보간값입니다. 정확한 값이 필요하면 통계청 가계동향조사와 가계금융복지조사 원자료를 확인하세요.</li>
+      </ul>
+    </section>
+  </div>
+
+  <div class="inner" id="tab-sup" role="tabpanel" aria-labelledby="tb-sup" hidden>
+    <form class="panel form" id="sform">
+      <label class="f" for="f-size">가구원 수
+        <select id="f-size"><option value="1">1인</option><option value="2" selected>2인</option><option value="3">3인</option><option value="4">4인</option><option value="5">5인</option><option value="6">6인</option></select>
+      </label>
+      <label class="f" for="f-inc">월 소득 (만원)
+        <input type="number" id="f-inc" min="0" step="10" value="150" inputmode="numeric" style="width:120px">
+      </label>
+      <label class="f" for="f-type">근로장려금 가구 유형
+        <select id="f-type"><option value="solo">단독 (배우자·자녀·부양 부모 없음)</option><option value="single" selected>홑벌이</option><option value="dual">맞벌이</option></select>
+      </label>
+      <label class="check" for="f-child"><input type="checkbox" id="f-child"> 초·중·고 재학 자녀 있음</label>
+      <label class="check" for="f-seek"><input type="checkbox" id="f-seek" checked> 구직 중</label>
+      <button type="submit" class="play">검색</button>
+      <p class="hint">예시 입력(2인 가구, 월 150만원)으로 먼저 보여 드립니다. 본인 정보로 바꾸고 검색을 누르세요. 입력한 값은 이 화면 밖으로 저장되지 않습니다.</p>
+    </form>
+    <p class="sumline" id="s-sum"></p>
+    <p class="caution">월 소득을 소득인정액처럼 단순 비교한 예상 결과입니다. 실제 심사는 재산, 소득 공제, 부양 관계를 반영하고 신청 후 시·군·구 조사로 정해집니다. 각 제도를 눌러 세부 내용을 읽고, 이해가 안 되는 부분은 질문하세요.</p>
+    <div class="progs" id="progs"></div>
+    <section class="panel notes">
+      <h2>기준 출처</h2>
+      <ul>
+        <li>2026년 기준 중위소득과 급여별 선정기준(32·40·48·50%): <a href="https://studygov.kr/blog/0412-median-income-100-percent-2026/" target="_blank" rel="noopener">studygov.kr 2026년 기준중위소득 표</a>. 선정기준 금액은 이 표의 계산값이며 보건복지부 고시 금액과 확인이 필요합니다.</li>
+        <li>근로장려금 소득요건과 최대지급액: <a href="https://taxtimes.co.kr/news/article.html?no=276649" target="_blank" rel="noopener">세정일보 2026.9.1 보도</a>의 현행 기준. 2026년 세법개정안의 확대안은 국회 의결 전입니다.</li>
+        <li>국민취업지원제도: <a href="https://studygov.kr/blog/0058-national-employment-support-system/" target="_blank" rel="noopener">studygov.kr 국민취업지원제도 안내(2026)</a>.</li>
+        <li>정확한 확인과 신청: <a href="https://www.bokjiro.go.kr" target="_blank" rel="noopener">복지로</a>, <a href="https://hometax.go.kr" target="_blank" rel="noopener">국세청 홈택스</a>, <a href="https://www.kua.go.kr" target="_blank" rel="noopener">국민취업지원제도</a>, 보건복지상담센터 129.</li>
+      </ul>
+    </section>
+  </div>
+
+  <div class="inner" id="tab-youth" role="tabpanel" aria-labelledby="tb-youth" hidden>
+    <form class="panel form" id="yform">
+      <label class="f" for="y-age">만 나이
+        <input type="number" id="y-age" min="10" max="80" step="1" value="27" inputmode="numeric" style="width:90px">
+      </label>
+      <label class="f" for="y-region">사는 곳
+        <select id="y-region"><option value="busan" selected>부산광역시</option><option value="metro">수도권 (서울·경기·인천)</option><option value="other">그 밖의 지역</option></select>
+      </label>
+      <label class="f" for="y-status">지금 상태
+        <select id="y-status"><option value="seek" selected>미취업·구직 중</option><option value="grad">대학 졸업예정 (마지막 학기)</option><option value="student">학교 재학·휴학 중</option><option value="work">회사에 다니는 중</option></select>
+      </label>
+      <label class="f" for="y-size">가구원 수
+        <select id="y-size"><option value="1">1인</option><option value="2" selected>2인</option><option value="3">3인</option><option value="4">4인</option><option value="5">5인</option><option value="6">6인</option></select>
+      </label>
+      <label class="f" for="y-inc">가구 월 소득 (만원)
+        <input type="number" id="y-inc" min="0" step="10" value="300" inputmode="numeric" style="width:120px">
+      </label>
+      <label class="check" for="y-idle"><input type="checkbox" id="y-idle"> 최근 6개월 동안 일·학업·직업훈련을 하지 않았음</label>
+      <button type="submit" class="play">검색</button>
+      <p class="hint">예시 입력(만 27세, 부산, 미취업, 2인 가구 월 300만원)으로 먼저 보여 드립니다. 가구 월 소득은 함께 사는 가족 전체의 소득입니다. 입력한 값은 이 화면 밖으로 저장되지 않습니다.</p>
+    </form>
+    <p class="sumline" id="y-sum"></p>
+    <p class="caution">나이·상태·가구 소득만으로 따져 본 예상 결과입니다. 재산, 병역 기간에 따른 나이 연장, 모집 차수별 조건은 반영하지 않았습니다. 금액은 2026년 안내 자료 기준이며 신청 전 고용24나 고용센터에서 공고를 확인하세요.</p>
+    <div class="progs" id="y-progs"></div>
+    <section class="panel notes">
+      <h2>기준 출처</h2>
+      <ul>
+        <li>국민취업지원제도 유형과 소득 기준: <a href="https://www.gov.kr/portal/rcvfvrSvc/dtlEx/149200005007" target="_blank" rel="noopener">정부24 국민취업지원제도 안내</a>. 구직촉진수당 월 60만원 인상과 청년특례(중위소득 120%, 재산 5억원)는 <a href="https://www.jiwongum.com/2026/09/60.html" target="_blank" rel="noopener">2026년 정리 자료</a> 등 2차 자료 기준입니다.</li>
+        <li>청년일자리도약장려금 근속 인센티브: <a href="https://www.moel.go.kr/news/enews/report/enewsView.do?news_seq=18886" target="_blank" rel="noopener">고용노동부 보도자료(2026)</a>.</li>
+        <li>청년도전지원사업 참여수당과 문답표 기준: 고용24 안내를 인용한 <a href="https://www.make2t.kr/2026/10/youth-challenge-support-application-2026.html" target="_blank" rel="noopener">2026년 정리 자료</a>.</li>
+        <li>미래내일 일경험: <a href="https://linkareer.com/activity/325217" target="_blank" rel="noopener">2026 프로젝트형 1차 모집 공고</a>, <a href="https://linkareer.com/activity/325747" target="_blank" rel="noopener">인턴형 2차 모집 공고</a>.</li>
+        <li>국민내일배움카드: 여러 2차 자료에서 일치하는 한도(300만원, 추가 200만원)만 적었습니다. 자부담 비율은 자료마다 달라 넣지 않았습니다.</li>
+        <li>부산 청년 디딤돌 카드+: <a href="https://youthdidimdol.kr/" target="_blank" rel="noopener">공식 누리집</a>, <a href="https://www.thepowernews.co.kr/view.php?ud=202603030740596763433530906c_7" target="_blank" rel="noopener">2026년 모집 보도</a>.</li>
+        <li>정확한 확인과 신청: <a href="https://www.work24.go.kr" target="_blank" rel="noopener">고용24</a>, 고용노동부 고객상담센터 1350, 거주지 고용복지플러스센터.</li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var NS = "http://www.w3.org/2000/svg";
+
+  /* ---------- 탭 ---------- */
+  var TABS = ["map", "sup", "youth"];
+  function showTab(which) {
+    TABS.forEach(function (k) {
+      $("tab-" + k).hidden = k !== which;
+      $("tb-" + k).setAttribute("aria-selected", k === which);
+    });
+    if (which !== "map") stop();
+  }
+  TABS.forEach(function (k) { $("tb-" + k).onclick = function () { showTab(k); }; });
+
+  /* ---------- 계층 지도 ---------- */
+  var mid15 = { 2015: 67.9, 2017: 63.8, 2018: 60.2, 2019: 58.3 };
+  var ratioHi = 20.3 / (20.3 + 14.7);
+  var pts = [
+    { y: 1990, hi: 17.5, mid: 75.4, lo: 7.1, kind: "src" },
+    { y: 2010, hi: 20.0, mid: 67.5, lo: 12.5, kind: "src" },
+    { y: 2012, hi: 20.3, mid: 65.0, lo: 14.7, kind: "src" }
+  ];
+  Object.keys(mid15).forEach(function (k) {
+    var m = mid15[k], rest = 100 - m;
+    pts.push({ y: +k, hi: +(rest * ratioHi).toFixed(1), mid: m, lo: +(rest * (1 - ratioHi)).toFixed(1), kind: "est" });
+  });
+  var events = [
+    { y: 1997, t: "외환위기", d: "1997년 외환위기 이후 중산층 비중이 가파르게 줄어들기 시작했다는 분석이 있습니다." },
+    { y: 2008, t: "글로벌 금융위기", d: "2008년 금융위기로 소득 불평등과 양극화가 다시 논의의 중심에 올랐습니다." },
+    { y: 2015, t: "조사 기준 변경", d: "2015년부터는 기재부 2분기 조사 수치를 씁니다. 앞 수치와 기준이 달라 값이 일시적으로 올라 보입니다." },
+    { y: 2019, t: "중산층 60% 아래로", d: "2019년 2분기 중위소득계층 비중이 58.3%로 60% 밑으로 내려갔다는 보도가 나왔습니다." }
+  ];
+  var presets = [
+    { a: 1990, b: 2019, t: "전체 1990–2019" },
+    { a: 1990, b: 2010, t: "1990–2010" },
+    { a: 2010, b: 2019, t: "2010–2019" },
+    { a: 2015, b: 2019, t: "2015–2019 (같은 조사 기준)" }
+  ];
+  var segs = [
+    { a: 1990, b: 2010, title: "1990–2010년: 중층이 줄고 양 끝이 늘었습니다", items: [
+      ["data", "1997년 외환위기 이후 중산층이 가파르게 줄었다고 분석됩니다(경향신문 기고, 2011)."],
+      ["data", "스스로 중산층이라 여기는 가구는 외환위기 전 70~80%에서 2006년 28% 수준으로 낮아졌습니다(같은 기고가 인용한 서울대 조사)."],
+      ["info", "1990~2010년 사이는 연도별 수치가 없어 직선으로 이었습니다. 외환위기 시점의 급한 변화는 그래프에 나타나지 않습니다."]
+    ] },
+    { a: 2010, b: 2012, title: "2010–2012년: 하층이 계속 늘었습니다", items: [
+      ["data", "1997년 외환위기와 2008년 금융위기를 거치며 계층 구도가 바뀌고 불평등과 양극화가 커졌다는 연구가 있습니다(한국노동패널 학술대회 논문)."],
+      ["data", "OECD 보고서(2012)는 한국의 소득불평등이 2009년 OECD 평균 수준에 이르렀고 상대적 빈곤율은 2008년 15%로 회원국 중 7번째로 높다고 봤습니다."]
+    ] },
+    { a: 2012, b: 2019, title: "2012–2019년: 중층 비중이 해마다 낮아졌습니다", items: [
+      ["info", "2015년부터는 조사와 기준이 달라 값이 일시적으로 올라 보입니다. 같은 기준인 2015~2019년만 비교하는 것이 정확합니다."],
+      ["data", "2분기 기준 중위소득계층 비중은 2015년 67.9%, 2017년 63.8%, 2018년 60.2%, 2019년 58.3%로 줄었습니다(기획재정부 자료 보도)."],
+      ["data", "같은 보도는 소득주도성장 정책으로 중산층이 늘고 있다는 정부 설명과 통계가 맞지 않아 논란이 될 전망이라고 전했습니다."],
+      ["interp", "고령 가구가 늘면 가구소득 분포가 달라질 수 있다는 해석이 있습니다. 이 지도의 수치만으로 확인되지는 않습니다."]
+    ] }
+  ];
+  var TAG = { data: ["data", "자료"], interp: ["interp", "해석"], info: ["", "안내"] };
+  var Y0 = 1990, Y1 = 2019;
+  var C = { hi: "var(--hi)", mid: "var(--mid)", lo: "var(--lo)" };
+
+  function at(y) {
+    var a = pts[0], b = pts[pts.length - 1];
+    for (var i = 0; i < pts.length - 1; i++) {
+      if (y >= pts[i].y && y <= pts[i + 1].y) { a = pts[i]; b = pts[i + 1]; break; }
+    }
+    var t = b.y === a.y ? 0 : (y - a.y) / (b.y - a.y);
+    var hi = a.hi + (b.hi - a.hi) * t, mid = a.mid + (b.mid - a.mid) * t, lo = a.lo + (b.lo - a.lo) * t;
+    var s = hi + mid + lo;
+    return { hi: hi * 100 / s, mid: mid * 100 / s, lo: lo * 100 / s };
+  }
+
+  var rStart = Y0, rEnd = Y1, base = at(rStart);
+  var shape = "circle", year = Y0, timer = null, holdUntil = 0;
+  var svg = $("map");
+
+  function el(name, attrs, text) {
+    var e = document.createElementNS(NS, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text) e.textContent = text;
+    return e;
+  }
+  function label(x, y, txt, fill) {
+    return el("text", { x: x, y: y, "text-anchor": "middle", "dominant-baseline": "middle", "font-size": 15, "font-weight": 600, fill: fill || "#fff" }, txt);
+  }
+
+  function drawCircle(s) {
+    var cx = 260, cy = 210, R = 195;
+    var r1 = R * Math.sqrt(s.hi / 100), r2 = R * Math.sqrt((s.hi + s.mid) / 100), r3 = R;
+    svg.appendChild(el("circle", { cx: cx, cy: cy, r: r3, fill: C.lo }));
+    svg.appendChild(el("circle", { cx: cx, cy: cy, r: r2, fill: C.mid }));
+    svg.appendChild(el("circle", { cx: cx, cy: cy, r: r1, fill: C.hi }));
+    [R * Math.sqrt(base.hi / 100), R * Math.sqrt((base.hi + base.mid) / 100)].forEach(function (r) {
+      svg.appendChild(el("circle", { cx: cx, cy: cy, r: r, fill: "none", stroke: "var(--fg)", "stroke-width": 1, "stroke-dasharray": "4 4", opacity: 0.55 }));
+    });
+    svg.appendChild(label(cx, cy, "상", "#fff"));
+    svg.appendChild(label(cx, cy - (r1 + r2) / 2, "중", "#10201D"));
+    if (r3 - r2 > 16) svg.appendChild(label(cx, cy - (r2 + r3) / 2, "하", "#1B2230"));
+    else svg.appendChild(el("text", { x: cx + r3 + 12, y: cy, "dominant-baseline": "middle", "font-size": 15, "font-weight": 600, fill: "var(--lo)" }, "하"));
+  }
+
+  function drawPyr(s) {
+    var cx = 260, top = 14, H = 392, W = 460, bot = top + H;
+    function edge(c) { var f = Math.sqrt(c / 100); return { y: top + H * f, hw: W * f / 2 }; }
+    var e1 = edge(s.hi), e2 = edge(s.hi + s.mid), e3 = { y: bot, hw: W / 2 };
+    function poly(a, b, fill) {
+      var p = [[cx - a.hw, a.y], [cx + a.hw, a.y], [cx + b.hw, b.y], [cx - b.hw, b.y]];
+      svg.appendChild(el("polygon", { points: p.map(function (q) { return q.join(","); }).join(" "), fill: fill }));
+    }
+    poly({ y: top, hw: 0 }, e1, C.hi);
+    poly(e1, e2, C.mid);
+    poly(e2, e3, C.lo);
+    [edge(base.hi), edge(base.hi + base.mid)].forEach(function (o) {
+      svg.appendChild(el("line", { x1: cx - o.hw, x2: cx + o.hw, y1: o.y, y2: o.y, stroke: "var(--fg)", "stroke-width": 1, "stroke-dasharray": "4 4", opacity: 0.55 }));
+    });
+    if (e1.y - top > 40) svg.appendChild(label(cx, top + (e1.y - top) * 0.62, "상", "#fff"));
+    if (e2.y - e1.y > 22) svg.appendChild(label(cx, (e1.y + e2.y) / 2, "중", "#10201D"));
+    if (e3.y - e2.y > 22) svg.appendChild(label(cx, (e2.y + e3.y) / 2, "하", "#1B2230"));
+    else svg.appendChild(el("text", { x: cx + e3.hw + 8, y: bot - 8, "font-size": 15, "font-weight": 600, fill: "var(--lo)" }, "하"));
+  }
+
+  function fmt(v) { return v.toFixed(1) + "%"; }
+  function pp(d) { return (d > 0 ? "+" : d < 0 ? "−" : "") + Math.abs(d).toFixed(1) + "%p"; }
+  function dl(v, b) {
+    var d = v - b;
+    if (Math.abs(d) < 0.05) return rStart + "년과 같음";
+    return rStart + "년 대비 " + pp(d);
+  }
+
+  function segFor(y) { return y < 2010 ? segs[0] : y < 2012 ? segs[1] : segs[2]; }
+
+  function renderWhy(s) {
+    var sg = segFor(year);
+    $("why-title").textContent = sg.title;
+    var a = at(sg.a), b = at(sg.b);
+    $("why-facts").textContent = sg.a + "→" + sg.b + "년 변화: 중층 " + fmt(a.mid) + " → " + fmt(b.mid) + ", 하층 " + fmt(a.lo) + " → " + fmt(b.lo) + ", 상층 " + fmt(a.hi) + " → " + fmt(b.hi);
+    var ul = $("why-list");
+    if (ul.getAttribute("data-seg") === sg.a + "") return;
+    ul.setAttribute("data-seg", sg.a + "");
+    ul.textContent = "";
+    sg.items.forEach(function (it) {
+      var li = document.createElement("li");
+      var t = document.createElement("span"); t.className = "tag " + TAG[it[0]][0]; t.textContent = TAG[it[0]][1];
+      var x = document.createElement("span"); x.textContent = it[1];
+      li.appendChild(t); li.appendChild(x); ul.appendChild(li);
+    });
+  }
+
+  function render() {
+    var s = at(year);
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    if (shape === "circle") drawCircle(s); else drawPyr(s);
+    var yi = Math.floor(year + 1e-6);
+    $("year").textContent = yi;
+    var exact = pts.filter(function (p) { return p.y === yi; })[0];
+    var bd = $("basis");
+    if (exact && exact.kind === "src") { bd.textContent = "공표 수치"; bd.className = "badge src"; }
+    else if (exact) { bd.textContent = "중층 공표, 상·하 추정"; bd.className = "badge"; }
+    else { bd.textContent = "연도 사이 보간"; bd.className = "badge"; }
+    $("v-hi").textContent = fmt(s.hi); $("v-mid").textContent = fmt(s.mid); $("v-lo").textContent = fmt(s.lo);
+    $("d-hi").textContent = dl(s.hi, base.hi); $("d-mid").textContent = dl(s.mid, base.mid); $("d-lo").textContent = dl(s.lo, base.lo);
+    var ratio = s.lo / base.lo;
+    var msg;
+    if (year - rStart < 0.2) msg = rStart + "년이 이 구간의 출발점입니다. 재생을 누르면 변화가 보입니다.";
+    else if (ratio > 1.05) msg = "하층은 " + rStart + "년의 약 " + ratio.toFixed(1) + "배가 됐고, 중층은 " + Math.abs(s.mid - base.mid).toFixed(1) + "%p " + (s.mid < base.mid ? "줄었습니다. 가운데가 얇아지고 양쪽 끝이 두꺼워지는 모습이 양극화입니다." : "늘었습니다.");
+    else if (ratio < 0.95) msg = "하층이 " + rStart + "년보다 줄었습니다. 구간에 조사 기준이 바뀐 해가 있으면 기준 차이도 섞여 있습니다.";
+    else msg = rStart + "년과 비교해 큰 변화가 없습니다.";
+    $("msg").textContent = msg;
+    var ev = events.filter(function (e) { return Math.abs(e.y - year) <= 1; })[0];
+    $("event").textContent = ev ? ev.y + " " + ev.t + ": " + ev.d : "사건 버튼을 누르면 해당 연도로 이동합니다.";
+    $("slider").value = year;
+    renderWhy(s);
+  }
+
+  function buildTicks() {
+    var ticks = $("ticks"); ticks.textContent = "";
+    var span = rEnd - rStart;
+    var ys = [rStart];
+    pts.forEach(function (p) { if (p.y > rStart && p.y < rEnd) ys.push(p.y); });
+    ys.push(rEnd);
+    var lastLabel = -100, lastEl = null;
+    ys.forEach(function (y, i) {
+      var pos = (y - rStart) / span * 100;
+      var isData = pts.some(function (p) { return p.y === y; });
+      var sp = document.createElement("span");
+      sp.style.left = pos + "%";
+      if (isData) sp.className = "d";
+      var isEnd = i === ys.length - 1;
+      if (pos - lastLabel >= 9) { sp.textContent = y; lastLabel = pos; lastEl = sp; }
+      else if (isEnd && lastEl && lastEl !== ticks.firstChild) { lastEl.textContent = ""; sp.textContent = y; lastLabel = pos; lastEl = sp; }
+      ticks.appendChild(sp);
+    });
+  }
+
+  function updateSummary() {
+    var a = at(rStart), b = at(rEnd);
+    $("range-sum").textContent = rStart + "→" + rEnd + "년: 중층 " + pp(b.mid - a.mid) + ", 하층 " + pp(b.lo - a.lo) + ", 상층 " + pp(b.hi - a.hi);
+    Array.prototype.forEach.call($("presets").children, function (c, i) {
+      c.setAttribute("aria-pressed", presets[i].a === rStart && presets[i].b === rEnd);
+    });
+  }
+
+  function setRange(a, b) {
+    rStart = a; rEnd = b; base = at(a);
+    $("sel-start").value = a; $("sel-end").value = b;
+    var sl = $("slider"); sl.min = a; sl.max = b;
+    year = Math.min(b, Math.max(a, year));
+    buildTicks(); updateSummary(); $("why-list").removeAttribute("data-seg"); render();
+  }
+
+  [$("sel-start"), $("sel-end")].forEach(function (sel) {
+    for (var y = Y0; y <= Y1; y++) { var o = document.createElement("option"); o.value = y; o.textContent = y + "년"; sel.appendChild(o); }
+  });
+  $("sel-start").onchange = function () {
+    var a = +$("sel-start").value, b = rEnd;
+    if (a >= b) { if (a >= Y1) a = Y1 - 1; b = a + 1; }
+    stop(); year = a; setRange(a, b);
+  };
+  $("sel-end").onchange = function () {
+    var b = +$("sel-end").value, a = rStart;
+    if (b <= a) { if (b <= Y0) b = Y0 + 1; a = b - 1; }
+    stop(); year = a; setRange(a, b);
+  };
+  presets.forEach(function (p) {
+    var b = document.createElement("button");
+    b.className = "chip"; b.textContent = p.t;
+    b.onclick = function () { stop(); year = p.a; setRange(p.a, p.b); };
+    $("presets").appendChild(b);
+  });
+
+  function setShape(s) {
+    shape = s;
+    $("btn-circle").setAttribute("aria-pressed", s === "circle");
+    $("btn-pyr").setAttribute("aria-pressed", s === "pyr");
+    render();
+  }
+  $("btn-circle").onclick = function () { setShape("circle"); };
+  $("btn-pyr").onclick = function () { setShape("pyr"); };
+  $("slider").addEventListener("input", function (e) { stop(); year = +e.target.value; render(); });
+
+  function stop() { if (timer) { cancelAnimationFrame(timer); timer = null; } $("play").textContent = "▶ 재생"; }
+  function play() {
+    if (timer) { stop(); return; }
+    if (year >= rEnd) year = rStart;
+    $("play").textContent = "❚❚ 멈춤";
+    var last = null; holdUntil = 0;
+    function step(ts) {
+      if (last === null) last = ts;
+      var dt = Math.min(0.1, (ts - last) / 1000); last = ts;
+      if (holdUntil) {
+        if (ts < holdUntil) { timer = requestAnimationFrame(step); return; }
+        holdUntil = 0; year = rStart; render();
+      } else {
+        year = Math.min(rEnd, year + dt * 2.5);
+        render();
+        if (year >= rEnd) {
+          if ($("loop").checked) { holdUntil = ts + 1000; }
+          else { stop(); return; }
+        }
+      }
+      timer = requestAnimationFrame(step);
+    }
+    timer = requestAnimationFrame(step);
+  }
+  $("play").onclick = play;
+
+  events.forEach(function (e) {
+    var b = document.createElement("button");
+    b.className = "chip"; b.textContent = e.y + " " + e.t;
+    b.onclick = function () {
+      stop();
+      if (e.y < rStart || e.y > rEnd) { year = e.y; setRange(Y0, Y1); }
+      year = e.y; render();
+    };
+    $("chips").appendChild(b);
+  });
+
+  /* ---------- 지원 제도 찾기 ---------- */
+  var MED = { 1: 2564238, 2: 4199292, 3: 5359036, 4: 6494738, 5: 7556719, 6: 8555952 };
+  var EITC = {
+    solo:   { name: "단독", limit: 2200, max: 165, plateau: [400, 900] },
+    single: { name: "홑벌이", limit: 3200, max: 285, plateau: [700, 1400] },
+    dual:   { name: "맞벌이", limit: 4400, max: 330, plateau: [800, 1700] }
+  };
+  function won(n) { return Math.round(n).toLocaleString("ko-KR") + "원"; }
+
+  var progs = [
+    { id: "life", name: "생계급여", pct: 32, rows: [
+      ["대상", "소득인정액이 기준 중위소득의 32% 이하인 가구. 소득인정액은 소득평가액에 재산의 소득환산액을 더한 값입니다."],
+      ["지원 내용", "생활비를 현금으로 지원합니다. 선정기준액과 소득인정액의 차이를 지급하는 방식으로 알려져 있습니다."],
+      ["신청", "주소지 읍·면·동 주민센터 방문 또는 복지로 온라인 신청."],
+      ["알아둘 점", "부양의무자 기준은 대부분 폐지됐지만 예외가 있을 수 있어 신청 때 확인이 필요합니다."]
+    ] },
+    { id: "med", name: "의료급여", pct: 40, rows: [
+      ["대상", "소득인정액이 기준 중위소득의 40% 이하인 가구."],
+      ["지원 내용", "병원비 본인부담을 크게 줄여 주는 공공 의료 보장 제도입니다. 가구 특성에 따라 1종과 2종으로 나뉩니다."],
+      ["신청", "주민센터 또는 복지로."],
+      ["알아둘 점", "1종과 2종의 본인부담 수준은 다릅니다. 해당 구분은 심사 후 정해집니다."]
+    ] },
+    { id: "house", name: "주거급여", pct: 48, rows: [
+      ["대상", "소득인정액이 기준 중위소득의 48% 이하인 가구."],
+      ["지원 내용", "임차 가구는 임차료를, 자가 가구는 집수리를 지원합니다. 지급 상한은 지역과 가구원 수에 따라 다릅니다."],
+      ["신청", "주민센터 또는 복지로."],
+      ["알아둘 점", "임차료 지원액은 실제 월세와 지역별 기준임대료 가운데 낮은 쪽을 기준으로 합니다."]
+    ] },
+    { id: "edu", name: "교육급여", pct: 50, needChild: true, rows: [
+      ["대상", "소득인정액이 기준 중위소득의 50% 이하이고 초·중·고에 다니는 학생이 있는 가구."],
+      ["지원 내용", "교육활동지원비, 교과서대 등 학교에 다니는 데 드는 비용을 지원합니다. 항목은 학교급별로 다릅니다."],
+      ["신청", "주민센터 또는 복지로. 학교를 통한 안내를 받을 수도 있습니다."],
+      ["알아둘 점", "학생이 없는 가구는 대상이 아닙니다."]
+    ] },
+    { id: "eitc", name: "근로장려금", rows: [
+      ["대상", "근로·사업소득이 있는 저소득 가구. 소득과 재산이 모두 기준 안에 들어야 합니다."],
+      ["지원 내용", "연 소득에 따라 정해진 금액을 현금으로 지급합니다. 최대 지급액은 단독 165만원, 홑벌이 285만원, 맞벌이 330만원입니다."],
+      ["신청", "정기 신청은 보통 5월이며 국세청 홈택스나 손택스에서 합니다. 근로소득만 있으면 반기 신청도 가능합니다."],
+      ["알아둘 점", "가구원 전체의 재산 합계가 기준을 넘으면 지급이 줄거나 끊깁니다. 기준 금액은 홈택스에서 확인하세요. 2026년 세법개정안의 확대안은 국회 의결 전이며 2027년 9월 신청분부터 적용될 예정입니다."]
+    ] },
+    { id: "kua", name: "국민취업지원제도 Ⅰ유형", pct: 60, rows: [
+      ["대상", "가구 소득이 기준 중위소득 60% 이하이고 재산이 4억원 이하(18~34세는 5억원 이하)이며, 최근 2년 안에 100일 또는 800시간 이상 일한 경험이 있는 구직자."],
+      ["지원 내용", "구직촉진수당 월 60만원(2026년 50만원에서 인상)을 6개월 받고, 부양가족 1명당 월 10만원(최대 40만원)이 더해집니다. 취업 상담과 직업훈련도 함께 받습니다."],
+      ["신청", "고용센터 방문 또는 국민취업지원제도 누리집."],
+      ["알아둘 점", "소득 기준을 넘으면 Ⅱ유형(구직촉진수당 대신 참여수당, 기준 완화)을 알아볼 수 있습니다. 소득은 건강보험료 기준으로 판단해 실제 소득과 다를 수 있습니다. 만 15~34세는 기준이 더 넓은 청년특례가 있으니 청년 취업 지원 탭도 확인하세요."]
+    ] }
+  ];
+
+  function evalProg(p, u) {
+    var med = MED[u.size], ratio = u.monthly / med * 100;
+    if (p.id === "eitc") {
+      var t = EITC[u.type];
+      if (u.monthly <= 0) return { st: "na", pill: "해당 없음", line: "근로·사업소득이 있어야 받을 수 있습니다." };
+      if (u.annualMan >= t.limit) return { st: "over", pill: "기준 초과", line: "연 소득 " + Math.round(u.annualMan) + "만원이 " + t.name + " 기준(" + t.limit + "만원 미만)을 넘습니다." };
+      var stage = u.annualMan < t.plateau[0] ? "소득이 늘수록 지급액도 늘어나는 구간" : u.annualMan <= t.plateau[1] ? "최대 지급액(" + t.max + "만원)을 받는 구간" : "소득이 늘수록 지급액이 줄어드는 구간";
+      return { st: "ok", pill: "소득 기준 충족", line: "연 소득 " + Math.round(u.annualMan) + "만원은 " + t.name + " 기준(" + t.limit + "만원 미만) 안이며 " + stage + "입니다. 재산 요건은 따로 확인하세요." };
+    }
+    if (p.needChild && !u.child) return { st: "na", pill: "해당 없음", line: "초·중·고에 다니는 학생이 있는 가구만 대상입니다." };
+    var th = med * p.pct / 100;
+    if (u.monthly > th) return { st: "over", pill: "기준 초과", line: "월 소득이 선정기준 " + won(th) + "(기준 중위소득 " + p.pct + "%)보다 " + won(u.monthly - th) + " 많습니다." };
+    if (p.id === "kua" && !u.seek) return { st: "check", pill: "조건 확인 필요", line: "소득은 기준(" + won(th) + " 이하) 안입니다. 구직 의사가 있어야 신청할 수 있습니다." };
+    var extra = p.id === "kua" ? " 취업 경험과 재산 요건은 따로 확인하세요." : " 재산이 소득으로 환산되어 더해지므로 실제 결과는 달라질 수 있습니다.";
+    return { st: "ok", pill: "소득 기준 충족", line: "월 소득이 선정기준 " + won(th) + "(기준 중위소득 " + p.pct + "%) 이하입니다." + extra };
+  }
+
+  var samplePromise = null;
+  function getSample() {
+    if (!samplePromise) {
+      samplePromise = (window.claude && window.claude.use) ? window.claude.use("sample").then(function (s) { return s || null; }, function () { return null; }) : Promise.resolve(null);
+    }
+    return samplePromise;
+  }
+
+  function ask(p, ctx, q, out, btn) {
+    q = (q || "").trim();
+    if (!q) { out.textContent = "궁금한 내용을 입력해 주세요."; return; }
+    var pre = faqExact(p, q);
+    if (pre) { out.textContent = pre + footer("미리 정리한 답", p); return; }
+    btn.disabled = true; out.textContent = "답변을 준비하는 중입니다...";
+    getSample().then(function (sample) {
+      if (!sample) { out.textContent = localAnswer(p, q); btn.disabled = false; return; }
+      var info = p.rows.map(function (r) { return r[0] + ": " + r[1]; }).join("\n");
+      var prompt = "당신은 한국 복지제도 안내 도우미입니다. 아래 [제도 정보]만 근거로 [질문]에 쉬운 한국어로 답하세요. 자료에 없는 내용은 모른다고 말하고 복지로나 보건복지상담센터 129에 확인하도록 안내하세요. 5문장 이내로 답하고, 마지막에 법률·세무 자문이 아니며 최종 판단은 담당 기관이 한다고 한 줄 덧붙이세요.\n\n[제도] " + p.name + "\n[제도 정보]\n" + info + "\n[질문자 상황] " + ctx + "\n[질문]\n" + q;
+      return sample(prompt, { cache: false, onText: function (t) { out.textContent = t.text; } }).then(function (r) {
+        out.textContent = r.text;
+      });
+    }).catch(function (err) {
+      var c = err && err.code;
+      var local = localAnswer(p, q);
+      out.textContent = c === "rate_limited" ? "AI 질문이 많아 잠시 쉬고 있어 자동 안내로 답합니다.\n\n" + local : (c === "not_granted" || c === "sampling_disabled" || c === "session_expired") ? local : "AI 답변을 가져오지 못해 자동 안내로 답합니다.\n\n" + local;
+    }).then(function () { btn.disabled = false; });
+  }
+
+  var SUG = ["소득인정액이 뭐예요?", "신청하려면 무엇을 준비해야 하나요?", "탈락하면 어떻게 하나요?"];
+
+  var ORDER = { ok: 0, check: 1, later: 2, over: 3, na: 4 };
+  function evaluate(defs, fn, u) {
+    var list = defs.map(function (p) { return { p: p, r: fn(p, u) }; });
+    list.sort(function (a, b) { return ORDER[a.r.st] - ORDER[b.r.st]; });
+    var cnt = { ok: 0, check: 0, later: 0, over: 0, na: 0 };
+    list.forEach(function (x) { cnt[x.r.st]++; });
+    return { list: list, cnt: cnt };
+  }
+
+  function renderProgs(u) {
+    var ev = evaluate(progs, evalProg, u), cnt = ev.cnt;
+    var ratio = u.monthly / MED[u.size] * 100;
+    var sum = $("s-sum"); sum.textContent = "";
+    var b1 = document.createElement("b"); b1.textContent = Math.round(u.monthly / 10000) + "만원";
+    var b2 = document.createElement("b"); b2.textContent = ratio.toFixed(0) + "%";
+    sum.appendChild(document.createTextNode(u.size + "인 가구 월 소득 "));
+    sum.appendChild(b1);
+    sum.appendChild(document.createTextNode("은 2026년 기준 중위소득(" + won(MED[u.size]) + ")의 "));
+    sum.appendChild(b2);
+    sum.appendChild(document.createTextNode("입니다. 소득 기준 충족 " + cnt.ok + "개, 조건 확인 필요 " + cnt.check + "개, 기준 초과 " + cnt.over + "개, 해당 없음 " + cnt.na + "개."));
+
+    renderCards("progs", ev.list, "가구원 " + u.size + "인, 월 소득 약 " + Math.round(u.monthly / 10000) + "만원");
+  }
+
+  function renderCards(boxId, list, ctx) {
+    var box = $(boxId); box.textContent = "";
+    list.forEach(function (x) {
+      var p = x.p, r = x.r;
+      var art = document.createElement("article"); art.className = "prog";
+      var head = document.createElement("button"); head.className = "prog-head"; head.type = "button";
+      head.setAttribute("aria-expanded", "false"); head.setAttribute("aria-controls", "pb-" + p.id);
+      var nm = document.createElement("span"); nm.className = "pname"; nm.textContent = p.name;
+      var pill = document.createElement("span"); pill.className = "pill " + r.st; pill.textContent = r.pill;
+      var ln = document.createElement("span"); ln.className = "pline"; ln.textContent = r.line;
+      head.appendChild(nm); head.appendChild(pill); head.appendChild(ln);
+      var body = document.createElement("div"); body.className = "prog-body"; body.id = "pb-" + boxId + "-" + p.id; body.hidden = true;
+      head.setAttribute("aria-controls", body.id);
+      var dlE = document.createElement("dl");
+      p.rows.forEach(function (row) {
+        var dt = document.createElement("dt"); dt.textContent = row[0];
+        var dd = document.createElement("dd"); dd.textContent = row[1];
+        dlE.appendChild(dt); dlE.appendChild(dd);
+      });
+      body.appendChild(dlE);
+      var askBox = document.createElement("div"); askBox.className = "ask";
+      var at1 = document.createElement("div"); at1.className = "t"; at1.textContent = "이해가 안 되는 부분을 물어보세요";
+      var chips = document.createElement("div"); chips.className = "chips";
+      var qrow = document.createElement("div"); qrow.className = "qrow";
+      var inp = document.createElement("input"); inp.type = "text"; inp.id = "q-" + boxId + "-" + p.id; inp.placeholder = "예: 소득인정액이 뭐예요?"; inp.setAttribute("aria-label", p.name + " 질문");
+      var go = document.createElement("button"); go.type = "button"; go.className = "chip"; go.textContent = "질문하기";
+      var out = document.createElement("p"); out.className = "answer"; out.setAttribute("aria-live", "polite");
+      (p.sug || SUG).forEach(function (sq) {
+        var c = document.createElement("button"); c.type = "button"; c.className = "chip"; c.textContent = sq;
+        c.onclick = function () { inp.value = sq; ask(p, ctx, sq, out, go); };
+        chips.appendChild(c);
+      });
+      go.onclick = function () { ask(p, ctx, inp.value, out, go); };
+      inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); ask(p, ctx, inp.value, out, go); } });
+      qrow.appendChild(inp); qrow.appendChild(go);
+      var how = document.createElement("div"); how.className = "how"; how.textContent = "추천 질문은 미리 정리한 답이 바로 나옵니다. 직접 쓴 질문은 Claude에 로그인한 경우 AI가 본인 사용량으로 답하고, 로그인하지 않았으면 제도 정보에서 찾아 답합니다.";
+      askBox.appendChild(at1); askBox.appendChild(how); askBox.appendChild(chips); askBox.appendChild(qrow); askBox.appendChild(out);
+      body.appendChild(askBox);
+      head.onclick = function () {
+        var open = head.getAttribute("aria-expanded") === "true";
+        head.setAttribute("aria-expanded", !open); body.hidden = open;
+      };
+      art.appendChild(head); art.appendChild(body); box.appendChild(art);
+    });
+  }
+
+  function readForm() {
+    var size = +$("f-size").value;
+    var man = Math.max(0, +$("f-inc").value || 0);
+    return { size: size, monthly: man * 10000, annualMan: man * 12, type: $("f-type").value, child: $("f-child").checked, seek: $("f-seek").checked };
+  }
+  $("f-size").onchange = function () {
+    var s = +$("f-size").value, t = $("f-type");
+    if (s === 1) t.value = "solo"; else if (t.value === "solo") t.value = "single";
+  };
+  $("sform").addEventListener("submit", function (e) { e.preventDefault(); renderProgs(readForm()); });
+
+  /* ---------- 청년 취업 지원 ---------- */
+  var YSUG = ["신청하려면 무엇을 준비해야 하나요?", "다른 제도와 같이 받을 수 있나요?", "중간에 취업하면 어떻게 되나요?"];
+  var youth = [
+    { id: "kua-y", name: "국민취업지원제도 (청년)", rows: [
+      ["대상", "만 15~34세 구직자. 병역을 마친 사람은 복무 기간만큼 나이가 늘어날 수 있습니다. 가구 소득이 기준 중위소득 120% 이하이고 재산이 5억원 이하이면 Ⅰ유형 청년특례, 그보다 많으면 소득과 관계없이 Ⅱ유형에 참여할 수 있습니다."],
+      ["지원 내용", "Ⅰ유형은 구직촉진수당 월 60만원을 최대 6개월 받고, 18세 이하·70세 이상·중증장애인 부양가족이 있으면 1명당 월 10만원(최대 40만원)이 더해집니다. Ⅱ유형은 구직촉진수당 대신 취업활동계획 수립 참여수당 같은 취업활동비용을 받습니다. 두 유형 모두 취업 상담, 직업훈련, 일자리 소개를 받습니다."],
+      ["신청", "고용24 온라인 또는 거주지 고용센터 방문."],
+      ["모집 시기", "연중 상시 신청."],
+      ["알아둘 점", "구직촉진수당은 Ⅰ유형만 받습니다. 대학 재학·휴학생은 원칙적으로 어렵고 졸업예정자는 참여할 수 있는 경우가 있습니다. 소득은 건강보험료 기준으로 판단해 실제 소득과 다를 수 있습니다."]
+    ] },
+    { id: "challenge", name: "청년도전지원사업", rows: [
+      ["대상", "만 18~34세 구직단념청년. 최근 6개월 동안 취업·교육·직업훈련 이력이 없고, 고용24의 구직단념청년 문답표에서 30점 만점에 21점 이상이어야 합니다. 자립준비청년은 따로 참여할 수 있습니다."],
+      ["지원 내용", "자신감 회복, 진로 탐색 프로그램과 참여수당. 단기(5주) 50만원, 중기(15주) 150만원(인센티브 포함 최대 220만원), 장기(25주) 250만원(최대 350만원)."],
+      ["신청", "고용24, 고용복지플러스센터, 또는 시·군·구 운영기관."],
+      ["모집 시기", "시·군·구 운영기관마다 모집 시기와 인원이 다릅니다. 사는 곳의 운영기관 공고를 확인하세요."],
+      ["알아둘 점", "대학 재학·휴학생은 제외되고 졸업(수료)예정자는 신청할 수 있습니다. 문답표 점수는 신청할 때 직접 답해서 정해집니다."]
+    ] },
+    { id: "intern", name: "미래내일 일경험", rows: [
+      ["대상", "만 15~34세 미취업 청년. 고용보험에 가입돼 있어도 주 근로시간이 30시간 미만이면 미취업으로 봅니다. 병역을 마친 사람은 복무 기간만큼 나이가 늘어납니다."],
+      ["지원 내용", "기업에서 실제 일을 해 보는 인턴형, 프로젝트형 등. 2026년 공고 예시로 사전 직무교육 참여수당 2만원(2일), 프로젝트형은 4주 기준 최대 40만원, 인턴형은 4주 기준 최대 150만원의 수당이 안내됐습니다."],
+      ["신청", "고용24의 미래내일 일경험 모집 공고에서 유형과 차수를 골라 신청. 프로젝트형은 혼자도 되고 4명 팀이면 우대합니다."],
+      ["모집 시기", "유형별로 1년에 여러 차례 모집합니다."],
+      ["알아둘 점", "수당 금액과 기간(4주·8주·10주)은 유형과 차수마다 다릅니다. 신청하려는 공고의 금액을 확인하세요."]
+    ] },
+    { id: "card", name: "국민내일배움카드", rows: [
+      ["대상", "직업훈련을 받으려는 국민. 미취업자와 재직자 모두 신청할 수 있습니다. 공무원, 사립학교 교직원, 졸업예정자가 아닌 재학생 등 일부는 제외됩니다."],
+      ["지원 내용", "5년 동안 훈련비 300만원 한도, 조건에 따라 200만원을 더해 최대 500만원. 출석률 80% 이상이면 월 최대 11만 6천원의 훈련장려금이 나옵니다."],
+      ["신청", "고용24에서 카드 발급 신청 후 훈련 과정을 골라 수강."],
+      ["모집 시기", "연중 상시 발급."],
+      ["알아둘 점", "과정마다 본인이 내는 비율(자부담)이 다르고 자료마다 기준이 달라 여기에는 적지 않았습니다. 수강 신청 화면에서 금액을 확인하세요. 국민취업지원제도 참여자는 카드를 함께 쓰는 경우가 많습니다."]
+    ] },
+    { id: "leap", name: "청년일자리도약장려금 근속 인센티브", rows: [
+      ["대상", "비수도권 기업에 취업한 청년. 회사가 청년일자리도약장려금 사업에 참여하고 있어야 하며, 6개월 이상 다녀야 합니다."],
+      ["지원 내용", "2년 동안 최대 720만원을 청년에게 직접 지급합니다. 인구감소지역처럼 사람 구하기 어려운 지역의 기업은 금액이 더 많습니다. 지역별 금액(480만·600만·720만원)은 2차 자료 기준입니다."],
+      ["신청", "회사가 기업 지원금을 받은 뒤 청년 본인이 고용24에서 신청합니다."],
+      ["모집 시기", "회사가 지원금을 받은 달의 다음 달부터 2개월 안에 신청해야 한다는 안내가 있습니다."],
+      ["알아둘 점", "2026년부터 수도권·비수도권 유형으로 바뀌었고, 청년 근속 인센티브는 비수도권 기업 취업 청년만 받습니다. 회사가 참여 중인지 인사 담당자에게 먼저 물어보세요."]
+    ] },
+    { id: "didimdol", name: "부산 청년 디딤돌 카드+", region: "busan", rows: [
+      ["대상", "부산에 사는 만 18~39세 미취업 청년, 가구 소득 기준 중위소득 150% 이하. 2026년에는 100% 이하 700명, 100% 초과 150% 이하 300명을 뽑았습니다."],
+      ["지원 내용", "구직 활동비 월 30만원을 6개월 동안 포인트로 지급(최대 180만원). 교육·자격증 비용과 식비 같은 생활비에 쓸 수 있고, 취업하거나 창업하면 30만 포인트를 더 줍니다."],
+      ["신청", "부산 청년 디딤돌 카드 누리집(youthdidimdol.kr) 온라인 접수. 문의: 부산경제진흥원 청년기반팀 051-600-1874, 1875."],
+      ["모집 시기", "2026년 모집은 3월 9일~27일에 끝났습니다. 다음 모집 공고를 기다려야 합니다."],
+      ["알아둘 점", "인원을 정해 뽑는 사업이라 조건에 맞아도 선정되지 않을 수 있습니다. 재학·휴학생 포함 여부는 공고에서 확인하세요."]
+    ] }
+  ];
+  youth.forEach(function (p) { p.sug = YSUG; });
+
+  function evalYouth(p, u) {
+    var a = u.age, s = u.status, pct = Math.round(u.ratio);
+    function na(line) { return { st: "na", pill: "해당 없음", line: line }; }
+    function ageIn(lo, hi) { return a >= lo && a <= hi; }
+    if (p.id === "kua-y") {
+      if (!ageIn(15, 34)) return na("만 15~34세 대상입니다. 병역을 마쳤다면 복무 기간만큼 나이가 늘어날 수 있으니 고용센터에 확인하세요. 35세 이상은 소득별 지원 제도 탭의 일반 기준을 보세요.");
+      if (s === "work") return { st: "check", pill: "조건 확인 필요", line: "회사에 다니는 중이면 대체로 어렵지만 근로시간과 소득에 따라 참여할 수 있는 경우가 있습니다. 고용센터에 확인하세요." };
+      if (s === "student") return { st: "check", pill: "조건 확인 필요", line: "재학·휴학 중에는 원칙적으로 어렵습니다. 졸업예정이 되면 다시 확인하세요." };
+      if (u.ratio <= 120) return { st: "ok", pill: "Ⅰ유형 청년특례 가능성", line: "가구 소득이 기준 중위소득의 " + pct + "%로 120% 이하입니다. 재산이 5억원 이하이면 구직촉진수당 월 60만원을 최대 6개월 받는 Ⅰ유형 대상일 수 있습니다." };
+      return { st: "ok", pill: "Ⅱ유형 가능성", line: "가구 소득이 기준 중위소득의 " + pct + "%로 120%를 넘어 Ⅰ유형은 어렵습니다. 청년은 소득과 관계없이 Ⅱ유형에 참여해 취업 지원과 참여수당을 받을 수 있습니다." };
+    }
+    if (p.id === "challenge") {
+      if (!ageIn(18, 34)) return na("만 18~34세 대상입니다.");
+      if (s === "work") return na("일하지 않는 청년이 대상입니다.");
+      if (s === "student") return na("대학 재학·휴학생은 제외됩니다. 졸업(수료)예정자는 신청할 수 있습니다.");
+      if (!u.idle) return { st: "check", pill: "조건 확인 필요", line: "최근 6개월 동안 일·학업·직업훈련을 하지 않았고 구직단념청년 문답표에서 21점 이상이면 대상입니다." };
+      return { st: "ok", pill: "조건에 맞을 수 있음", line: "최근 6개월 활동이 없어 기본 조건에 맞습니다. 구직단념청년 문답표에서 21점 이상이면 참여수당 최대 350만원 과정에 참여할 수 있습니다." };
+    }
+    if (p.id === "intern") {
+      if (!ageIn(15, 34)) return na("만 15~34세 미취업 청년 대상입니다.");
+      if (s === "work") return { st: "check", pill: "조건 확인 필요", line: "주 근로시간이 30시간 미만이면 미취업으로 보아 참여할 수 있습니다." };
+      return { st: "ok", pill: "조건에 맞을 수 있음", line: "만 " + a + "세 미취업 청년이라 기본 조건에 맞습니다. 고용24에서 지금 열린 차수와 유형을 고르세요." };
+    }
+    if (p.id === "card") {
+      if (a < 15) return na("만 15세 이상이 대상입니다.");
+      if (s === "student") return { st: "check", pill: "조건 확인 필요", line: "재학생은 원칙적으로 제외되고 졸업예정자 등은 예외로 발급받을 수 있습니다." };
+      return { st: "ok", pill: "조건에 맞을 수 있음", line: (s === "work" ? "재직자도 발급받을 수 있습니다. " : "미취업자는 발급받을 수 있습니다. ") + "5년 동안 훈련비 300만원(조건에 따라 최대 500만원)을 씁니다." };
+    }
+    if (p.id === "leap") {
+      if (!ageIn(15, 34)) return na("청년(만 15~34세)이 대상입니다.");
+      if (u.region === "metro") return na("2026년 청년 근속 인센티브는 비수도권 기업에 취업한 청년만 받습니다.");
+      if (s !== "work") return { st: "later", pill: "취업 후 해당", line: "지금은 대상이 아닙니다. 비수도권 기업에 취업해 6개월 이상 다니면 2년간 최대 720만원을 받을 수 있습니다(회사가 사업에 참여해야 함)." };
+      return { st: "check", pill: "조건 확인 필요", line: "다니는 회사가 청년일자리도약장려금에 참여하고 있고 6개월 이상 다니면 2년간 최대 720만원을 받을 수 있습니다. 인사 담당자에게 참여 여부를 물어보세요." };
+    }
+    if (p.id === "didimdol") {
+      if (u.region !== "busan") return na("부산에 사는 청년만 신청할 수 있습니다.");
+      if (!ageIn(18, 39)) return na("만 18~39세 대상입니다.");
+      if (s === "work") return na("미취업 청년이 대상입니다.");
+      if (u.ratio > 150) return { st: "over", pill: "기준 초과", line: "가구 소득이 기준 중위소득의 " + pct + "%로 150%를 넘습니다." };
+      return { st: "check", pill: "다음 모집 대기", line: "가구 소득이 기준 중위소득의 " + pct + "%로 조건에 맞을 수 있습니다. 2026년 모집(3월)은 끝났으니 다음 모집 공고를 확인하세요." };
+    }
+  }
+
+  var REGION = { busan: "부산", metro: "수도권", other: "그 밖의 지역" };
+  var STATUS = { seek: "미취업·구직 중", grad: "졸업예정", student: "재학·휴학 중", work: "재직 중" };
+  function readYouth() {
+    var size = +$("y-size").value, man = Math.max(0, +$("y-inc").value || 0);
+    return { age: Math.max(0, Math.round(+$("y-age").value || 0)), region: $("y-region").value, status: $("y-status").value, size: size, monthly: man * 10000, ratio: man * 10000 / MED[size] * 100, idle: $("y-idle").checked };
+  }
+  function renderYouth(u) {
+    var ev = evaluate(youth, evalYouth, u), c = ev.cnt;
+    var sum = $("y-sum"); sum.textContent = "";
+    var b1 = document.createElement("b"); b1.textContent = "만 " + u.age + "세";
+    var b2 = document.createElement("b"); b2.textContent = Math.round(u.ratio) + "%";
+    sum.appendChild(b1);
+    sum.appendChild(document.createTextNode(", " + REGION[u.region] + ", " + STATUS[u.status] + ". 가구 소득은 " + u.size + "인 가구 기준 중위소득의 "));
+    sum.appendChild(b2);
+    sum.appendChild(document.createTextNode("입니다. 조건에 맞을 수 있음 " + c.ok + "개, 확인 필요 " + c.check + "개, 취업 후 해당 " + c.later + "개, 해당 없음 " + (c.na + c.over) + "개."));
+    renderCards("y-progs", ev.list, "만 " + u.age + "세, " + REGION[u.region] + " 거주, " + STATUS[u.status] + ", 가구원 " + u.size + "인, 가구 월 소득 약 " + Math.round(u.monthly / 10000) + "만원(기준 중위소득의 " + Math.round(u.ratio) + "%)");
+  }
+  $("yform").addEventListener("submit", function (e) { e.preventDefault(); renderYouth(readYouth()); });
+
+  /* ---------- 로그인 없이 답하기: 미리 쓴 답 + 제도 정보 검색 ---------- */
+  var BASIC_Q = ["소득인정액이 뭐예요?", "신청하려면 무엇을 준비해야 하나요?", "탈락하면 어떻게 하나요?"];
+  var BASIC_A = {
+    income: "소득인정액은 소득평가액(실제 소득에서 일부를 공제한 금액)에 재산의 소득환산액(재산에서 기본재산액과 부채를 뺀 뒤 환산율을 곱한 금액)을 더한 값입니다. 월 소득이 적어도 재산이 많으면 소득인정액이 높아져 기준을 넘을 수 있습니다. 이 화면은 월 소득만으로 비교했기 때문에 실제 결과와 다를 수 있습니다.",
+    prep: "주소지 읍·면·동 주민센터에 신분증을 가지고 가서 사회보장급여 신청서, 소득·재산 신고서, 금융정보 등 제공 동의서를 작성합니다. 서식은 주민센터에 있습니다. 월세를 내면 임대차계약서, 일을 하고 있으면 소득을 보여 주는 자료를 함께 가져가면 좋습니다. 복지로에서 온라인으로도 신청할 수 있고, 가구 상황에 따라 서류를 더 요청받을 수 있습니다.",
+    fail: "결정 통지서에 탈락 이유가 적혀 있습니다. 결정에 동의하지 않으면 통지를 받은 날부터 90일 안에 시·군·구청을 거쳐 이의신청을 할 수 있습니다. 기준을 조금 넘었다면 차상위계층 지원이나 긴급복지지원 같은 다른 제도를 주민센터나 129에 물어보세요. 소득이 줄어드는 등 상황이 바뀌면 다시 신청할 수 있습니다."
+  };
+  var FAQ = {
+    life: [[BASIC_Q[0], BASIC_A.income], [BASIC_Q[1], BASIC_A.prep], [BASIC_Q[2], BASIC_A.fail]],
+    med: [[BASIC_Q[0], BASIC_A.income], [BASIC_Q[1], BASIC_A.prep], [BASIC_Q[2], BASIC_A.fail]],
+    house: [[BASIC_Q[0], BASIC_A.income], [BASIC_Q[1], BASIC_A.prep], [BASIC_Q[2], BASIC_A.fail]],
+    edu: [[BASIC_Q[0], BASIC_A.income], [BASIC_Q[1], BASIC_A.prep], [BASIC_Q[2], BASIC_A.fail]],
+    eitc: [
+      [BASIC_Q[0], "근로장려금은 소득인정액을 쓰지 않습니다. 전년도 연간 총소득(배우자가 있으면 부부 합산)과 가구원 전체의 재산 합계로 판단합니다. 이 화면은 월 소득에 12를 곱해 연 소득으로 비교했습니다."],
+      [BASIC_Q[1], "정기 신청은 보통 5월에 홈택스나 손택스(모바일)로 합니다. 국세청이 대상으로 보이는 사람에게 안내문을 보내고, 소득은 국세청이 가진 자료로 확인합니다. 지급받을 본인 명의 계좌를 준비하세요. 안내문을 받지 못했어도 조건에 맞으면 직접 신청할 수 있습니다."],
+      [BASIC_Q[2], "홈택스에서 심사 결과와 이유를 확인할 수 있습니다. 결과에 동의하지 않으면 통지를 받은 날부터 90일 안에 이의신청 같은 불복 절차를 밟을 수 있습니다. 재산이나 소득 기준 때문이라면 다음 해에 조건을 다시 확인하세요. 문의는 국세청 126입니다."]
+    ],
+    kua: [
+      [BASIC_Q[0], "국민취업지원제도는 소득인정액 대신 건강보험료로 판단한 가구 소득과 가구원 재산 합계를 봅니다. 그래서 실제 월 소득과 판단 결과가 다를 수 있습니다."],
+      [BASIC_Q[1], "고용24에서 온라인으로 신청하거나 신분증을 가지고 고용센터에 갑니다. 신청하면 소득·재산 조사를 거쳐 참여 여부와 유형이 정해지고, 상담사와 취업활동계획을 세웁니다. 최근 2년 안에 일한 기간을 보여 줄 자료가 있으면 도움이 됩니다."],
+      [BASIC_Q[2], "Ⅰ유형에서 떨어져도 Ⅱ유형으로 참여할 수 있는지 고용센터에 물어보세요. Ⅱ유형은 구직촉진수당은 없지만 취업 상담, 직업훈련, 참여수당을 받습니다. 결정에 동의하지 않을 때의 이의신청 방법도 고용센터나 1350에서 안내받을 수 있습니다."]
+    ],
+    "kua-y": [
+      [YSUG[0], "고용24에서 온라인으로 신청하거나 신분증을 가지고 고용센터에 갑니다. 신청하면 가구 소득과 재산을 조회해 Ⅰ유형 청년특례인지 Ⅱ유형인지 정해지고, 상담사와 취업활동계획을 세웁니다. 병역을 마쳤다면 나이 연장에 복무 기간 확인 자료가 필요할 수 있습니다."],
+      [YSUG[1], "직업훈련을 받을 때 국민내일배움카드를 함께 쓰는 경우가 많습니다. 구직촉진수당을 받는 동안 지자체 구직 수당처럼 성격이 비슷한 현금 지원은 중복이 제한될 수 있으니 각 공고의 중복 수혜 기준을 확인하세요."],
+      [YSUG[2], "취업하면 구직촉진수당은 끝납니다. 참여 중이나 끝난 뒤 정해진 기간 안에 취업해 계속 일하면 취업성공수당을 받을 수 있는 경우가 있습니다. 아르바이트로 소득이 생겨도 수당이 줄 수 있으니 고용센터에 바로 알리세요."]
+    ],
+    challenge: [
+      [YSUG[0], "고용24, 고용복지플러스센터, 또는 사는 곳의 운영기관에 신청합니다. 신청할 때 구직단념청년 문답표에 답해 30점 만점에 21점 이상이면 대상이 됩니다. 운영기관마다 모집 시기가 달라 먼저 공고 일정을 확인하세요."],
+      [YSUG[1], "프로그램을 마친 뒤 국민취업지원제도로 이어서 참여하는 경우가 많습니다. 같은 기간에 다른 정부 현금 지원을 받으면 참여가 제한될 수 있으니 운영기관에 확인하세요."],
+      [YSUG[2], "참여 중에 취업하면 보통 프로그램이 끝납니다. 이미 채운 기간의 참여수당과 취업 관련 인센티브는 운영기관 기준에 따르니 담당자에게 확인하세요."]
+    ],
+    intern: [
+      [YSUG[0], "고용24의 미래내일 일경험 모집 공고에서 유형(인턴형, 프로젝트형 등)과 기업을 골라 신청합니다. 이력서와 자기소개를 준비하세요. 프로젝트형은 혼자도 되고 4명 팀이면 우대합니다."],
+      [YSUG[1], "실제 일을 하는 프로그램이라 국민취업지원제도 같은 다른 사업과 기간이 겹치면 제한될 수 있습니다. 내일배움카드 훈련과 시간이 겹치지 않는지도 확인하세요. 기준은 공고마다 다릅니다."],
+      [YSUG[2], "참여 중에 다른 회사에 취업하면 보통 중간에 그만두게 됩니다. 수당은 참여한 기간만큼 정산하는 경우가 많으니 운영기관에 확인하세요."]
+    ],
+    card: [
+      [YSUG[0], "고용24에서 카드 발급을 신청합니다. 발급 전에 정해진 절차(안내 영상 시청 등)가 있을 수 있고, 발급 뒤 훈련 과정을 골라 수강 신청합니다. 훈련장려금을 받을 본인 명의 계좌를 준비하세요."],
+      [YSUG[1], "국민취업지원제도 참여자가 직업훈련을 받을 때 함께 쓰는 경우가 많습니다. 같은 훈련 과정에 두 가지 지원을 겹쳐 받을 수는 없습니다."],
+      [YSUG[2], "재직자도 카드를 쓸 수 있어서 취업해도 바로 없어지지는 않습니다. 다만 훈련장려금처럼 미취업자에게 주는 지원은 달라질 수 있으니 고용24에서 확인하세요."]
+    ],
+    leap: [
+      [YSUG[0], "먼저 회사가 청년일자리도약장려금 사업에 참여하는지 인사 담당자에게 물어보세요. 회사가 기업 지원금을 받은 뒤 청년 본인이 고용24에서 근속 인센티브를 신청합니다."],
+      [YSUG[1], "같이 받을 수 있는지는 제도마다 다릅니다. 같은 목적의 근속 지원금은 중복으로 받을 수 없는 경우가 있으니 고용24 공고를 확인하세요."],
+      [YSUG[2], "이 제도는 취업한 뒤에 받는 지원입니다. 6개월을 채우기 전에 회사를 그만두면 받기 어렵고, 지급은 근속 기간에 따라 나뉘어 이뤄집니다. 회사를 옮기려면 고용24나 1350에 먼저 확인하세요."]
+    ],
+    didimdol: [
+      [YSUG[0], "모집 기간에 부산 청년 디딤돌 카드 누리집(youthdidimdol.kr)에서 온라인으로 신청합니다. 거주와 소득 확인 서류는 공고에 적힌 목록을 따르세요. 문의는 부산경제진흥원 청년기반팀 051-600-1874, 1875입니다."],
+      [YSUG[1], "국민취업지원제도 구직촉진수당처럼 성격이 비슷한 구직 수당을 같은 기간에 받으면 중복이 제한될 수 있습니다. 공고의 중복 수혜 기준을 확인하세요."],
+      [YSUG[2], "지원 기간 중 취업하거나 창업하면 30만 포인트를 더 받을 수 있다고 안내됐습니다. 취업한 뒤 남은 기간의 활동비가 계속 나오는지는 공고에서 확인하세요."]
+    ]
+  };
+  var GLOSS = [
+    { k: ["중위소득", "중위 소득"], a: "기준 중위소득은 정부가 해마다 정하는 '가운데 가구'의 소득입니다. 복지 제도는 이 금액의 몇 %까지를 대상으로 하는지로 기준을 정합니다. 2026년 1인 가구는 월 2,564,238원, 2인 가구는 월 4,199,292원입니다." },
+    { k: ["소득인정액"], a: BASIC_A.income },
+    { k: ["구직촉진수당"], a: "구직촉진수당은 국민취업지원제도 Ⅰ유형 참여자가 구직 활동을 하면 받는 수당입니다. 2026년 기준 월 60만원을 최대 6개월 받고, 부양가족이 있으면 1명당 월 10만원(최대 40만원)이 더해집니다." },
+    { k: ["구직단념", "문답표"], a: "구직단념청년은 일할 생각은 있지만 오랫동안 구직 활동을 하지 못한 청년을 말합니다. 청년도전지원사업은 최근 6개월 동안 취업·교육·훈련 이력이 없고, 고용24 문답표에서 30점 만점에 21점 이상인 청년을 대상으로 합니다." },
+    { k: ["비수도권", "수도권"], a: "수도권은 서울·경기·인천이고, 그 밖의 지역이 비수도권입니다. 청년일자리도약장려금의 청년 근속 인센티브는 2026년부터 비수도권 기업에 취업한 청년만 받습니다." },
+    { k: ["재산"], a: "재산은 제도마다 다르게 반영됩니다. 생계·의료·주거·교육급여는 재산을 소득으로 환산해 소득인정액에 더하고, 근로장려금은 가구원 재산 합계가 기준을 넘으면 지급이 줄거나 끊깁니다. 국민취업지원제도는 가구 재산 4억원 이하(청년특례 5억원 이하) 기준이 있습니다. 집, 예금, 자동차 등 무엇을 얼마로 계산하는지는 제도별로 달라 담당 기관에 확인하세요." },
+    { k: ["이의신청", "불복"], a: "이의신청은 결정에 동의하지 않을 때 다시 판단해 달라고 요청하는 절차입니다. 복지 급여는 보통 결정 통지를 받은 날부터 90일 안에 해야 하니 통지서를 받으면 날짜부터 확인하세요." }
+  ];
+  var CONTACT = { life: "보건복지상담센터 129", med: "보건복지상담센터 129", house: "보건복지상담센터 129", edu: "보건복지상담센터 129", eitc: "국세청 126", didimdol: "부산경제진흥원 051-600-1874" };
+  function contactOf(p) { return CONTACT[p.id] || "고용노동부 고객상담센터 1350"; }
+  var STOP = { "하나": 1, "나요": 1, "어요": 1, "뭐예": 1, "예요": 1, "인가": 1, "가요": 1, "있나": 1, "되나": 1, "할까": 1, "하면": 1, "어떻": 1, "떻게": 1, "무엇": 1, "엇을": 1, "어야": 1, "해야": 1, "있어": 1, "는지": 1 };
+  function compact(s) { return s.replace(/[\s?!.,·()~"'“”‘’]/g, ""); }
+  function grams(s) { var c = compact(s), out = []; for (var i = 0; i < c.length - 1; i++) { var g = c.substr(i, 2); if (!STOP[g]) out.push(g); } return out; }
+  function sim(q, text) {
+    var g = grams(q); if (!g.length) return 0;
+    var t = compact(text), hit = 0;
+    g.forEach(function (x) { if (t.indexOf(x) >= 0) hit++; });
+    return hit / g.length;
+  }
+  var INTENT = [
+    [/얼마|금액|수당|지원금|혜택|받[나아을는으]|주나|줘요/, "지원 내용"],
+    [/언제|기간|모집|마감|날짜|몇\s*월/, "모집 시기"],
+    [/어디|신청|접수|방법/, "신청"],
+    [/누가|누구|대상|자격|조건|나이|해당/, "대상"],
+    [/주의|조심|알아둘|불이익|중복/, "알아둘 점"]
+  ];
+  function faqExact(p, q) {
+    var c = compact(q), list = FAQ[p.id] || [];
+    for (var i = 0; i < list.length; i++) if (compact(list[i][0]) === c) return list[i][1];
+    return null;
+  }
+  function footer(src, p) { return "\n\n근거: " + src + ". AI가 아닌 자동 안내이며, 최종 판단은 담당 기관이 합니다. 문의: " + contactOf(p) + "."; }
+  function localAnswer(p, q) {
+    var exact = faqExact(p, q);
+    if (exact) return exact + footer("미리 정리한 답", p);
+    var cands = [];
+    (FAQ[p.id] || []).forEach(function (f) { cands.push({ s: sim(q, f[0]) * 1.1, t: f[1], src: "미리 정리한 답" }); });
+    GLOSS.forEach(function (g) { if (g.k.some(function (k) { return q.indexOf(k) >= 0; })) cands.push({ s: 1.5, t: g.a, src: "용어 풀이" }); });
+    var intent = INTENT.filter(function (x) { return x[0].test(q); }).map(function (x) { return x[1]; });
+    p.rows.forEach(function (r) {
+      var s = sim(q, r[0] + " " + r[1]) * 0.8 + (q.indexOf(r[0]) >= 0 ? 0.3 : 0);
+      if (intent.indexOf(r[0]) >= 0) s += 0.9 - intent.indexOf(r[0]) * 0.1;
+      cands.push({ s: s, t: r[1], src: "제도 정보의 '" + r[0] + "' 항목" });
+    });
+    cands.sort(function (a, b) { return b.s - a.s; });
+    var best = cands[0];
+    if (!best || best.s < 0.3) return "미리 정리한 답과 제도 정보에서 이 질문의 답을 찾지 못했습니다. 위의 추천 질문을 눌러 보거나, " + contactOf(p) + "에 물어보세요.";
+    return best.t + footer(best.src, p);
+  }
+
+  setRange(Y0, Y1);
+  renderProgs(readForm());
+  renderYouth(readYouth());
+})();
+</script>
