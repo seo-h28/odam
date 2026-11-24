@@ -651,6 +651,7 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
     var pre = faqExact(p, q);
     if (pre) { out.textContent = pre + footer("미리 정리한 답", p); return; }
     btn.disabled = true; out.textContent = "답변을 준비하는 중입니다...";
+    if (window.ODAM_API) { askServer(p, ctx, q, out, btn); return; }
     getSample().then(function (sample) {
       if (!sample) { out.textContent = localAnswer(p, q); btn.disabled = false; return; }
       var info = p.rows.map(function (r) { return r[0] + ": " + r[1]; }).join("\n");
@@ -663,6 +664,24 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
       var local = localAnswer(p, q);
       out.textContent = c === "rate_limited" ? "AI 질문이 많아 잠시 쉬고 있어 자동 안내로 답합니다.\n\n" + local : (c === "not_granted" || c === "sampling_disabled" || c === "session_expired") ? local : "AI 답변을 가져오지 못해 자동 안내로 답합니다.\n\n" + local;
     }).then(function () { btn.disabled = false; });
+  }
+
+  /* 오담 질문 서버(내 컴퓨터의 Ollama)에 묻는다. 꺼져 있거나 늦으면 자동 안내로 답한다. */
+  function askServer(p, ctx, q, out, btn) {
+    out.textContent = "AI가 답을 쓰는 중입니다. 최대 1분쯤 걸릴 수 있습니다...";
+    var ctl = new AbortController(), timer = setTimeout(function () { ctl.abort(); }, 90000);
+    fetch(window.ODAM_API, {
+      method: "POST", headers: { "Content-Type": "application/json" }, signal: ctl.signal,
+      body: JSON.stringify({ program: p.name, rows: p.rows, context: ctx, question: q })
+    }).then(function (r) {
+      if (!r.ok) throw new Error(r.status);
+      return r.json();
+    }).then(function (d) {
+      out.textContent = d.answer + "\n\n이 답은 AI(" + d.model + ")가 위 제도 정보를 바탕으로 쓴 것이라 틀릴 수 있습니다. 법률·세무 자문이 아니며 최종 판단은 담당 기관이 합니다. 문의: " + contactOf(p) + ".";
+    }).catch(function (e) {
+      var why = String(e && e.message) === "429" ? "AI 질문이 많아 잠시 쉬고 있어" : "AI 서버에 연결하지 못해";
+      out.textContent = why + " 자동 안내로 답합니다.\n\n" + localAnswer(p, q);
+    }).then(function () { clearTimeout(timer); btn.disabled = false; });
   }
 
   var SUG = ["소득인정액이 뭐예요?", "신청하려면 무엇을 준비해야 하나요?", "탈락하면 어떻게 하나요?"];

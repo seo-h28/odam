@@ -2,4 +2,5 @@
 plan.md
 
 __pycache__/
+.venv/
 .claude/
