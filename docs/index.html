@@ -41,8 +41,9 @@ h2 { font-size: 16px; margin: 0 0 8px; }
 .eyebrow { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; font-size: 13px; color: var(--muted); letter-spacing: 0.04em; }
 .eyebrow b { font-family: var(--font-display); font-weight: 400; font-size: 18px; color: var(--fg); letter-spacing: 0.02em; }
 @media (max-width: 560px) { .brand { gap: 14px; align-items: flex-start; } .logo { width: 64px; height: 64px; border-radius: 14px; } }
-.tabs { display: flex; gap: 4px; margin-top: 16px; border-bottom: 1px solid var(--line); }
-.tabs { overflow-x: auto; scrollbar-width: none; }
+/* 탭 줄은 스크롤해도 화면 위에 붙어 있다 */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
 .tabs button { white-space: nowrap; flex: none; font: inherit; font-weight: 500; padding: 10px 16px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--muted); cursor: pointer; margin-bottom: -1px; }
 .tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
 @media (max-width: 480px) { .tabs { gap: 0; } .tabs button { padding-inline: 8px; font-size: 14px; } }
@@ -102,10 +103,19 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
 .notes ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
 .notes li { min-width: 0; overflow-wrap: anywhere; }
 .notes a { color: var(--hi); }
+.notes h3 { font-size: 13px; color: var(--fg); margin: 12px 0 4px; }
 /* 지원 제도 탭 */
-.form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; }
-.form .hint { flex-basis: 100%; margin: 0; font-size: 13px; color: var(--muted); }
-.sumline { font-size: 15px; margin: 0; }
+.form { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px 14px; align-items: end; }
+.form .check, .form .hint, .form .play, .form .wide { grid-column: 1 / -1; }
+.form .play { justify-self: start; min-width: 140px; min-height: 44px; }
+.form select, .form input[type=number] { width: 100%; min-height: 40px; box-sizing: border-box; }
+.form .hint { margin: 0; font-size: 13px; color: var(--muted); }
+/* 흐린 글자 = 예시 값 */
+input::placeholder { color: var(--muted); opacity: 0.6; }
+select.ph { color: var(--muted); color: color-mix(in srgb, var(--muted) 60%, transparent); }
+select option { color: var(--fg); }
+.exnote { color: var(--muted); }
+.sumline { font-size: 15px; margin: 0; scroll-margin-top: 60px; }
 .sumline b { font-variant-numeric: tabular-nums; }
 .caution { font-size: 13px; color: var(--muted); margin: 0; }
 .progs { display: flex; flex-direction: column; gap: 10px; }
@@ -132,6 +142,17 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
 .olink:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .olink .on { font-weight: 600; color: var(--hi); font-size: 14px; }
 .olink .oh { font-size: 12px; color: var(--muted); }
+/* 내 지원 찾기: 묶음과 꼬리표 */
+.ptags { display: inline-flex; gap: 6px; margin-left: 8px; vertical-align: 2px; }
+.ptags span { font-size: 11px; font-weight: 500; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.ptags .scope.busan { color: var(--hi); border-color: var(--hi); }
+.resulthead { display: flex; flex-direction: column; gap: 10px; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.gh { font-size: 15px; font-weight: 600; margin: 0; display: flex; align-items: baseline; gap: 8px; }
+.gh span { font-size: 13px; font-weight: 500; color: var(--muted); }
+details.group > summary { cursor: pointer; list-style: revert; padding: 4px 0; }
+details.group[open] > summary { margin-bottom: 10px; }
+.empty { margin: 0; font-size: 14px; color: var(--muted); }
 .ask { display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--bg); border-radius: 8px; }
 .ask .t { font-size: 13px; font-weight: 600; }
 .ask .how { font-size: 12px; color: var(--muted); }
@@ -139,6 +160,31 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
 .ask input[type=text] { flex: 1; }
 .answer { margin: 0; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .answer:empty { display: none; }
+
+/* 컴퓨터: 지원 탭은 왼쪽에 입력 칸을 고정하고 오른쪽에 결과를 보여 준다 */
+@media (min-width: 960px) {
+  .wrap { max-width: 1160px; }
+  .inner.support { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px 28px; align-items: start; }
+  .inner.support > * { grid-column: 2; }
+  .inner.support > .form { grid-column: 1; grid-row: 1 / span 8; position: sticky; top: 64px; grid-template-columns: minmax(0, 1fr); }
+  .inner.support > .form .play { justify-self: stretch; }
+}
+/* 휴대폰: 한 손으로 누르기 쉬운 크기, 입력할 때 화면이 확대되지 않는 글자 크기 */
+@media (max-width: 600px) {
+  body { padding-block: 16px 32px; }
+  .wrap { gap: 16px; }
+  .lede { font-size: 14px; }
+  .panel { padding: 14px; }
+  .form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 12px; }
+  .form select, .form input[type=number], .ask input[type=text] { font-size: 16px; min-height: 44px; }
+  .form .play { justify-self: stretch; }
+  .check { min-height: 32px; }
+  .chip { min-height: 36px; }
+  .olink { flex: 1 1 100%; }
+  .prog-head { padding: 14px; }
+  .prog-body { padding-inline: 14px; }
+  .tile .val { font-size: 24px; }
+}
 </style>
 
 <div class="wrap">
@@ -148,16 +194,14 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
       <div class="brand-text">
         <div class="eyebrow"><b>오담</b><span>오롯이 담다</span></div>
         <h1>소득 계층 변화 지도</h1>
-        <p class="lede">대한민국 가구를 소득 기준 상·중·하로 나눠 계층 비율의 변화를 보고, 내 소득으로 받을 수 있는 지원 제도와 청년 취업 지원 제도를 찾아봅니다.</p>
+        <p class="lede">대한민국 가구를 소득 기준 상·중·하로 나눠 계층 비율의 변화를 보고, 내 상황에 맞는 전국·부산 지원 제도를 한 번에 찾아봅니다.</p>
       </div>
     </div>
+  </header>
     <div class="tabs" role="tablist">
       <button role="tab" id="tb-map" aria-selected="true" aria-controls="tab-map">계층 지도</button>
-      <button role="tab" id="tb-sup" aria-selected="false" aria-controls="tab-sup">소득별 지원</button>
-      <button role="tab" id="tb-youth" aria-selected="false" aria-controls="tab-youth">청년 취업 지원</button>
-      <button role="tab" id="tb-busan" aria-selected="false" aria-controls="tab-busan">부산 지원</button>
+      <button role="tab" id="tb-find" aria-selected="false" aria-controls="tab-find">내 지원 찾기</button>
     </div>
-  </header>
 
   <div class="inner" id="tab-map" role="tabpanel" aria-labelledby="tb-map">
     <section class="stage">
@@ -235,62 +279,51 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
     </section>
   </div>
 
-  <div class="inner" id="tab-sup" role="tabpanel" aria-labelledby="tb-sup" hidden>
-    <form class="panel form" id="sform">
-      <label class="f" for="f-size">가구원 수
-        <select id="f-size"><option value="1">1인</option><option value="2" selected>2인</option><option value="3">3인</option><option value="4">4인</option><option value="5">5인</option><option value="6">6인</option></select>
+  <div class="inner support" id="tab-find" role="tabpanel" aria-labelledby="tb-find" hidden>
+    <form class="panel form" id="uform">
+      <label class="f" for="u-age">만 나이
+        <input type="number" id="u-age" min="0" max="110" step="1" placeholder="예) 27" data-ex="27" inputmode="numeric">
       </label>
-      <label class="f" for="f-inc">월 소득 (만원)
-        <input type="number" id="f-inc" min="0" step="10" value="150" inputmode="numeric" style="width:120px">
+      <label class="f" for="u-region">사는 곳
+        <select id="u-region" data-ex="busan"><option value="" selected disabled>예) 부산광역시</option><option value="busan">부산광역시</option><option value="metro">수도권 (서울·경기·인천)</option><option value="other">그 밖의 지역</option></select>
       </label>
-      <label class="f" for="f-type">근로장려금 가구 유형
-        <select id="f-type"><option value="solo">단독 (배우자·자녀·부양 부모 없음)</option><option value="single" selected>홑벌이</option><option value="dual">맞벌이</option></select>
+      <label class="f" for="u-status">지금 상태
+        <select id="u-status" data-ex="seek"><option value="" selected disabled>예) 미취업·구직 중</option><option value="seek">미취업·구직 중</option><option value="grad">대학 졸업예정 (마지막 학기)</option><option value="student">학교 재학·휴학 중</option><option value="work">일하는 중 (회사·자영업)</option></select>
       </label>
-      <label class="check" for="f-child"><input type="checkbox" id="f-child"> 초·중·고 재학 자녀 있음</label>
-      <label class="check" for="f-seek"><input type="checkbox" id="f-seek" checked> 구직 중</label>
+      <label class="f" for="u-size">가구원 수
+        <select id="u-size" data-ex="2"><option value="" selected disabled>예) 2인</option><option value="1">1인</option><option value="2">2인</option><option value="3">3인</option><option value="4">4인</option><option value="5">5인</option><option value="6">6인</option></select>
+      </label>
+      <label class="f wide" for="u-inc">가구 월 소득 (만원, 함께 사는 가족 전체)
+        <input type="number" id="u-inc" min="0" step="10" placeholder="예) 200" data-ex="200" inputmode="numeric">
+      </label>
+      <label class="check" for="u-rent"><input type="checkbox" id="u-rent"> 무주택, 부모와 따로 살며 월세 냄</label>
+      <label class="check" for="u-child"><input type="checkbox" id="u-child"> 초·중·고에 다니는 자녀 있음</label>
+      <label class="check" for="u-idle"><input type="checkbox" id="u-idle"> 최근 6개월 동안 일·학업·직업훈련을 하지 않았음</label>
+      <label class="check" for="u-wed"><input type="checkbox" id="u-wed"> 신혼부부 (혼인신고 함)</label>
+      <label class="check" for="u-dual"><input type="checkbox" id="u-dual"> 부부가 둘 다 일함 (맞벌이)</label>
+      <label class="check" for="u-crisis"><input type="checkbox" id="u-crisis"> 최근 실직·폐업·큰 병 등으로 생계가 갑자기 어려워짐</label>
       <button type="submit" class="play">검색</button>
-      <p class="hint">예시 입력(2인 가구, 월 150만원)으로 먼저 보여 드립니다. 본인 정보로 바꾸고 검색을 누르세요. 입력한 값은 이 화면 밖으로 저장되지 않습니다.</p>
+      <p class="hint">흐린 글자는 예시입니다. 처음 결과는 예시 값으로 보여 드리니 내 정보를 넣고 검색을 누르세요. 입력한 값은 이 화면 밖으로 저장되지 않습니다.</p>
     </form>
-    <p class="sumline" id="s-sum"></p>
-    <p class="caution">월 소득을 소득인정액처럼 단순 비교한 예상 결과입니다. 실제 심사는 재산, 소득 공제, 부양 관계를 반영하고 신청 후 시·군·구 조사로 정해집니다. 각 제도를 눌러 세부 내용을 읽고, 이해가 안 되는 부분은 질문하세요.</p>
-    <div class="progs" id="progs"></div>
+    <div class="resulthead">
+      <p class="sumline" id="u-sum"></p>
+      <div class="chips" id="u-cats" role="group" aria-label="분야로 거르기"></div>
+    </div>
+    <p class="caution">나이·사는 곳·가구 소득·상황만으로 따져 본 예상 결과입니다. 재산, 소득 공제, 병역 기간, 모집 차수별 조건은 반영하지 않았습니다. 2026년 자료 기준이며 최종 판단은 담당 기관이 합니다. 각 제도를 눌러 공식 사이트에서 확인하고, 이해가 안 되는 부분은 질문하세요.</p>
+    <p class="empty" id="u-empty" hidden>이 분야에는 보여 줄 제도가 없습니다. 다른 분야를 눌러 보세요.</p>
+    <section class="group" id="g-ok"><h2 class="gh">신청해 볼 만한 제도 <span id="n-ok"></span></h2><div class="progs" id="u-ok"></div></section>
+    <section class="group" id="g-check"><h2 class="gh">조건을 확인할 제도 <span id="n-check"></span></h2><div class="progs" id="u-check"></div></section>
+    <details class="group" id="g-no"><summary class="gh">지금은 해당하지 않는 제도 <span id="n-no"></span></summary><div class="progs" id="u-no"></div></details>
     <section class="panel notes">
       <h2>기준 출처</h2>
+      <h3>소득별 제도</h3>
       <ul>
         <li>2026년 기준 중위소득과 급여별 선정기준(32·40·48·50%): <a href="https://studygov.kr/blog/0412-median-income-100-percent-2026/" target="_blank" rel="noopener">studygov.kr 2026년 기준중위소득 표</a>. 선정기준 금액은 이 표의 계산값이며 보건복지부 고시 금액과 확인이 필요합니다.</li>
         <li>근로장려금 소득요건과 최대지급액: <a href="https://taxtimes.co.kr/news/article.html?no=276649" target="_blank" rel="noopener">세정일보 2026.9.1 보도</a>의 현행 기준. 2026년 세법개정안의 확대안은 국회 의결 전입니다.</li>
         <li>국민취업지원제도: <a href="https://studygov.kr/blog/0058-national-employment-support-system/" target="_blank" rel="noopener">studygov.kr 국민취업지원제도 안내(2026)</a>.</li>
         <li>정확한 확인과 신청: <a href="https://www.bokjiro.go.kr" target="_blank" rel="noopener">복지로</a>, <a href="https://hometax.go.kr" target="_blank" rel="noopener">국세청 홈택스</a>, <a href="https://www.kua.go.kr" target="_blank" rel="noopener">국민취업지원제도</a>, 보건복지상담센터 129.</li>
       </ul>
-    </section>
-  </div>
-
-  <div class="inner" id="tab-youth" role="tabpanel" aria-labelledby="tb-youth" hidden>
-    <form class="panel form" id="yform">
-      <label class="f" for="y-age">만 나이
-        <input type="number" id="y-age" min="10" max="80" step="1" value="27" inputmode="numeric" style="width:90px">
-      </label>
-      <label class="f" for="y-region">사는 곳
-        <select id="y-region"><option value="busan" selected>부산광역시</option><option value="metro">수도권 (서울·경기·인천)</option><option value="other">그 밖의 지역</option></select>
-      </label>
-      <label class="f" for="y-status">지금 상태
-        <select id="y-status"><option value="seek" selected>미취업·구직 중</option><option value="grad">대학 졸업예정 (마지막 학기)</option><option value="student">학교 재학·휴학 중</option><option value="work">회사에 다니는 중</option></select>
-      </label>
-      <label class="f" for="y-size">가구원 수
-        <select id="y-size"><option value="1">1인</option><option value="2" selected>2인</option><option value="3">3인</option><option value="4">4인</option><option value="5">5인</option><option value="6">6인</option></select>
-      </label>
-      <label class="f" for="y-inc">가구 월 소득 (만원)
-        <input type="number" id="y-inc" min="0" step="10" value="300" inputmode="numeric" style="width:120px">
-      </label>
-      <label class="check" for="y-idle"><input type="checkbox" id="y-idle"> 최근 6개월 동안 일·학업·직업훈련을 하지 않았음</label>
-      <button type="submit" class="play">검색</button>
-      <p class="hint">예시 입력(만 27세, 부산, 미취업, 2인 가구 월 300만원)으로 먼저 보여 드립니다. 가구 월 소득은 함께 사는 가족 전체의 소득입니다. 입력한 값은 이 화면 밖으로 저장되지 않습니다.</p>
-    </form>
-    <p class="sumline" id="y-sum"></p>
-    <p class="caution">나이·상태·가구 소득만으로 따져 본 예상 결과입니다. 재산, 병역 기간에 따른 나이 연장, 모집 차수별 조건은 반영하지 않았습니다. 금액은 2026년 안내 자료 기준이며 신청 전 고용24나 고용센터에서 공고를 확인하세요.</p>
-    <div class="progs" id="y-progs"></div>
-    <section class="panel notes">
-      <h2>기준 출처</h2>
+      <h3>청년 취업 제도</h3>
       <ul>
         <li>국민취업지원제도 유형과 소득 기준: <a href="https://www.gov.kr/portal/rcvfvrSvc/dtlEx/149200005007" target="_blank" rel="noopener">정부24 국민취업지원제도 안내</a>. 구직촉진수당 월 60만원 인상과 청년특례(중위소득 120%, 재산 5억원)는 <a href="https://www.jiwongum.com/2026/09/60.html" target="_blank" rel="noopener">2026년 정리 자료</a> 등 2차 자료 기준입니다.</li>
         <li>청년일자리도약장려금 근속 인센티브: <a href="https://www.moel.go.kr/news/enews/report/enewsView.do?news_seq=18886" target="_blank" rel="noopener">고용노동부 보도자료(2026)</a>.</li>
@@ -300,32 +333,7 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
         <li>부산 청년 디딤돌 카드+: <a href="https://youthdidimdol.kr/" target="_blank" rel="noopener">공식 누리집</a>, <a href="https://www.thepowernews.co.kr/view.php?ud=202603030740596763433530906c_7" target="_blank" rel="noopener">2026년 모집 보도</a>.</li>
         <li>정확한 확인과 신청: <a href="https://www.work24.go.kr" target="_blank" rel="noopener">고용24</a>, 고용노동부 고객상담센터 1350, 거주지 고용복지플러스센터.</li>
       </ul>
-    </section>
-  </div>
-
-  <div class="inner" id="tab-busan" role="tabpanel" aria-labelledby="tb-busan" hidden>
-    <form class="panel form" id="bform">
-      <label class="f" for="b-age">만 나이
-        <input type="number" id="b-age" min="0" max="110" step="1" value="29" inputmode="numeric" style="width:90px">
-      </label>
-      <label class="f" for="b-size">가구원 수
-        <select id="b-size"><option value="1" selected>1인</option><option value="2">2인</option><option value="3">3인</option><option value="4">4인</option><option value="5">5인</option><option value="6">6인</option></select>
-      </label>
-      <label class="f" for="b-inc">가구 월 소득 (만원)
-        <input type="number" id="b-inc" min="0" step="10" value="150" inputmode="numeric" style="width:120px">
-      </label>
-      <label class="check" for="b-work"><input type="checkbox" id="b-work" checked> 일하는 중 (근로·사업소득 있음)</label>
-      <label class="check" for="b-rent"><input type="checkbox" id="b-rent" checked> 무주택, 부모와 따로 살며 월세 냄</label>
-      <label class="check" for="b-wed"><input type="checkbox" id="b-wed"> 신혼부부 (혼인신고 함)</label>
-      <label class="check" for="b-crisis"><input type="checkbox" id="b-crisis"> 최근 실직·폐업·큰 병 등으로 생계가 갑자기 어려워짐</label>
-      <button type="submit" class="play">검색</button>
-      <p class="hint">부산광역시에 주민등록이 있는 사람을 기준으로 봅니다. 예시 입력(만 29세, 1인 가구 월 150만원, 일하는 중, 월세)으로 먼저 보여 드립니다. 입력한 값은 이 화면 밖으로 저장되지 않습니다.</p>
-    </form>
-    <p class="sumline" id="b-sum"></p>
-    <p class="caution">부산시 사업은 정해진 기간에 인원을 뽑는 경우가 많아 조건에 맞아도 지금 신청할 수 없을 수 있습니다. 구·군이 따로 하는 출산축하금 같은 사업은 아직 넣지 않았습니다. 2026년 공고와 보도 기준이며 신청 전 부산시 누리집이나 120바로콜센터(051-120)에서 확인하세요.</p>
-    <div class="progs" id="b-progs"></div>
-    <section class="panel notes">
-      <h2>기준 출처</h2>
+      <h3>부산시 제도</h3>
       <ul>
         <li>부산형 긴급복지지원: <a href="https://www.busan.go.kr/depart/welpolicy0113" target="_blank" rel="noopener">부산광역시 안내 페이지</a>(중위소득 85%, 재산 3억 5천만원). 생계비 금액은 2차 자료 기준입니다.</li>
         <li>청년월세 지원: <a href="https://www.sasang.go.kr/index.sasang?menuCd=DOM_000000103010004000" target="_blank" rel="noopener">사상구 2026년 공고</a>. 신청 기간은 자료마다 달라 확인이 필요합니다.</li>
@@ -344,7 +352,7 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
   var NS = "http://www.w3.org/2000/svg";
 
   /* ---------- 탭 ---------- */
-  var TABS = ["map", "sup", "youth", "busan"];
+  var TABS = ["map", "find"];
   function showTab(which) {
     TABS.forEach(function (k) {
       $("tab-" + k).hidden = k !== which;
@@ -352,6 +360,9 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
     });
     if (which !== "map") stop();
     try { $("tb-" + which).scrollIntoView({ block: "nearest", inline: "nearest" }); } catch (e) {}
+    // 아래로 내려가 있었다면 새 탭의 맨 위부터 보이게 한다
+    var hd = document.querySelector("header"), top = hd.offsetTop + hd.offsetHeight;
+    if (window.scrollY > top) window.scrollTo(0, top);
   }
   TABS.forEach(function (k) { $("tb-" + k).onclick = function () { showTab(k); }; });
 
@@ -625,6 +636,25 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
   };
   function won(n) { return Math.round(n).toLocaleString("ko-KR") + "원"; }
 
+  /* 입력 칸 읽기: 비어 있으면 흐린 글자의 예시 값(data-ex)을 쓴다.
+     검색을 누르기 전에는 체크 칸도 예시 값을 쓴다. */
+  var submitted = {}, exUsed = false;
+  function fv(id, fid) {
+    var el = $(id);
+    if (el.type === "checkbox") return submitted[fid] ? el.checked : el.dataset.ex === "1";
+    if (el.value === "") { exUsed = true; return el.dataset.ex || ""; }
+    return el.value;
+  }
+  function exNote(fid) {
+    if (!submitted[fid]) return "예시 값으로 본 결과입니다. 내 정보를 넣고 검색을 누르세요. ";
+    return exUsed ? "비어 있는 칸은 예시 값으로 계산했습니다. " : "";
+  }
+  function noteSpan(u) { var s = document.createElement("span"); s.className = "exnote"; s.textContent = u.note || ""; return s; }
+  function syncPh(sel) { sel.classList.toggle("ph", sel.value === ""); }
+  Array.prototype.forEach.call(document.querySelectorAll(".form select"), function (s) {
+    syncPh(s); s.addEventListener("change", function () { syncPh(s); });
+  });
+
   var progs = [
     { id: "life", name: "생계급여", pct: 32, rows: [
       ["대상", "소득인정액이 기준 중위소득의 32% 이하인 가구. 소득인정액은 소득평가액에 재산의 소득환산액을 더한 값입니다."],
@@ -660,7 +690,7 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
       ["대상", "가구 소득이 기준 중위소득 60% 이하이고 재산이 4억원 이하(18~34세는 5억원 이하)이며, 최근 2년 안에 100일 또는 800시간 이상 일한 경험이 있는 구직자."],
       ["지원 내용", "구직촉진수당 월 60만원(2026년 50만원에서 인상)을 6개월 받고, 부양가족 1명당 월 10만원(최대 40만원)이 더해집니다. 취업 상담과 직업훈련도 함께 받습니다."],
       ["신청", "고용센터 방문 또는 국민취업지원제도 누리집."],
-      ["알아둘 점", "소득 기준을 넘으면 Ⅱ유형(구직촉진수당 대신 참여수당, 기준 완화)을 알아볼 수 있습니다. 소득은 건강보험료 기준으로 판단해 실제 소득과 다를 수 있습니다. 만 15~34세는 기준이 더 넓은 청년특례가 있으니 청년 취업 지원 탭도 확인하세요."]
+      ["알아둘 점", "소득 기준을 넘으면 Ⅱ유형(구직촉진수당 대신 참여수당, 기준 완화)을 알아볼 수 있습니다. 소득은 건강보험료 기준으로 판단해 실제 소득과 다를 수 있습니다. 만 15~34세는 기준이 더 넓은 청년특례가 적용되며, 나이를 넣으면 청년용 카드로 보여 줍니다."]
     ] }
   ];
 
@@ -669,6 +699,7 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
     if (p.id === "eitc") {
       var t = EITC[u.type];
       if (u.monthly <= 0) return { st: "na", pill: "해당 없음", line: "근로·사업소득이 있어야 받을 수 있습니다." };
+      if (u.status && u.status !== "work") return { st: "check", pill: "조건 확인 필요", line: "근로·사업소득이 있어야 받을 수 있습니다. 일하고 있다면 '지금 상태'를 '일하는 중'으로 바꿔 보세요." };
       if (u.annualMan >= t.limit) return { st: "over", pill: "기준 초과", line: "연 소득 " + Math.round(u.annualMan) + "만원이 " + t.name + " 기준(" + t.limit + "만원 미만)을 넘습니다." };
       var stage = u.annualMan < t.plateau[0] ? "소득이 늘수록 지급액도 늘어나는 구간" : u.annualMan <= t.plateau[1] ? "최대 지급액(" + t.max + "만원)을 받는 구간" : "소득이 늘수록 지급액이 줄어드는 구간";
       return { st: "ok", pill: "소득 기준 충족", line: "연 소득 " + Math.round(u.annualMan) + "만원은 " + t.name + " 기준(" + t.limit + "만원 미만) 안이며 " + stage + "입니다. 재산 요건은 따로 확인하세요." };
@@ -748,6 +779,15 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
     didimdol: [["부산 청년 디딤돌 카드", "https://youthdidimdol.kr", "모집 공고와 신청"], YOUTH]
   };
 
+  /* 카드 꼬리표: 어디 제도인지(전국/부산), 어떤 분야인지 */
+  var SCOPE = { emergency: "부산", rent: "부산", double: "부산", newlywed: "부산", dongbaek: "부산", didimdol: "부산" };
+  var CAT = {
+    life: "생활비", eitc: "생활비", emergency: "생활비", med: "의료",
+    house: "주거", rent: "주거", newlywed: "주거", edu: "교육",
+    kua: "일자리", "kua-y": "일자리", challenge: "일자리", intern: "일자리", card: "일자리", leap: "일자리", didimdol: "일자리",
+    double: "목돈", dongbaek: "교통"
+  };
+
   var SUG = ["소득인정액이 뭐예요?", "신청하려면 무엇을 준비해야 하나요?", "탈락하면 어떻게 하나요?"];
 
   var ORDER = { ok: 0, check: 1, later: 2, over: 3, na: 4 };
@@ -759,21 +799,6 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
     return { list: list, cnt: cnt };
   }
 
-  function renderProgs(u) {
-    var ev = evaluate(progs, evalProg, u), cnt = ev.cnt;
-    var ratio = u.monthly / MED[u.size] * 100;
-    var sum = $("s-sum"); sum.textContent = "";
-    var b1 = document.createElement("b"); b1.textContent = Math.round(u.monthly / 10000) + "만원";
-    var b2 = document.createElement("b"); b2.textContent = ratio.toFixed(0) + "%";
-    sum.appendChild(document.createTextNode(u.size + "인 가구 월 소득 "));
-    sum.appendChild(b1);
-    sum.appendChild(document.createTextNode("은 2026년 기준 중위소득(" + won(MED[u.size]) + ")의 "));
-    sum.appendChild(b2);
-    sum.appendChild(document.createTextNode("입니다. 소득 기준 충족 " + cnt.ok + "개, 조건 확인 필요 " + cnt.check + "개, 기준 초과 " + cnt.over + "개, 해당 없음 " + cnt.na + "개."));
-
-    renderCards("progs", ev.list, "가구원 " + u.size + "인, 월 소득 약 " + Math.round(u.monthly / 10000) + "만원");
-  }
-
   function renderCards(boxId, list, ctx) {
     var box = $(boxId); box.textContent = "";
     list.forEach(function (x) {
@@ -782,6 +807,12 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
       var head = document.createElement("button"); head.className = "prog-head"; head.type = "button";
       head.setAttribute("aria-expanded", "false"); head.setAttribute("aria-controls", "pb-" + p.id);
       var nm = document.createElement("span"); nm.className = "pname"; nm.textContent = p.name;
+      var tags = document.createElement("span"); tags.className = "ptags";
+      [[SCOPE[p.id] || "전국", SCOPE[p.id] ? "scope busan" : "scope"], [CAT[p.id], "cat"]].forEach(function (t) {
+        if (!t[0]) return;
+        var s = document.createElement("span"); s.className = t[1]; s.textContent = t[0]; tags.appendChild(s);
+      });
+      nm.appendChild(tags);
       var pill = document.createElement("span"); pill.className = "pill " + r.st; pill.textContent = r.pill;
       var ln = document.createElement("span"); ln.className = "pline"; ln.textContent = r.line;
       head.appendChild(nm); head.appendChild(pill); head.appendChild(ln);
@@ -833,17 +864,6 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
       art.appendChild(head); art.appendChild(body); box.appendChild(art);
     });
   }
-
-  function readForm() {
-    var size = +$("f-size").value;
-    var man = Math.max(0, +$("f-inc").value || 0);
-    return { size: size, monthly: man * 10000, annualMan: man * 12, type: $("f-type").value, child: $("f-child").checked, seek: $("f-seek").checked };
-  }
-  $("f-size").onchange = function () {
-    var s = +$("f-size").value, t = $("f-type");
-    if (s === 1) t.value = "solo"; else if (t.value === "solo") t.value = "single";
-  };
-  $("sform").addEventListener("submit", function (e) { e.preventDefault(); renderProgs(readForm()); });
 
   /* ---------- 청년 취업 지원 ---------- */
   var YSUG = ["신청하려면 무엇을 준비해야 하나요?", "다른 제도와 같이 받을 수 있나요?", "중간에 취업하면 어떻게 되나요?"];
@@ -937,23 +957,7 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
   }
 
   var REGION = { busan: "부산", metro: "수도권", other: "그 밖의 지역" };
-  var STATUS = { seek: "미취업·구직 중", grad: "졸업예정", student: "재학·휴학 중", work: "재직 중" };
-  function readYouth() {
-    var size = +$("y-size").value, man = Math.max(0, +$("y-inc").value || 0);
-    return { age: Math.max(0, Math.round(+$("y-age").value || 0)), region: $("y-region").value, status: $("y-status").value, size: size, monthly: man * 10000, ratio: man * 10000 / MED[size] * 100, idle: $("y-idle").checked };
-  }
-  function renderYouth(u) {
-    var ev = evaluate(youth, evalYouth, u), c = ev.cnt;
-    var sum = $("y-sum"); sum.textContent = "";
-    var b1 = document.createElement("b"); b1.textContent = "만 " + u.age + "세";
-    var b2 = document.createElement("b"); b2.textContent = Math.round(u.ratio) + "%";
-    sum.appendChild(b1);
-    sum.appendChild(document.createTextNode(", " + REGION[u.region] + ", " + STATUS[u.status] + ". 가구 소득은 " + u.size + "인 가구 기준 중위소득의 "));
-    sum.appendChild(b2);
-    sum.appendChild(document.createTextNode("입니다. 조건에 맞을 수 있음 " + c.ok + "개, 확인 필요 " + c.check + "개, 취업 후 해당 " + c.later + "개, 해당 없음 " + (c.na + c.over) + "개."));
-    renderCards("y-progs", ev.list, "만 " + u.age + "세, " + REGION[u.region] + " 거주, " + STATUS[u.status] + ", 가구원 " + u.size + "인, 가구 월 소득 약 " + Math.round(u.monthly / 10000) + "만원(기준 중위소득의 " + Math.round(u.ratio) + "%)");
-  }
-  $("yform").addEventListener("submit", function (e) { e.preventDefault(); renderYouth(readYouth()); });
+  var STATUS = { seek: "미취업·구직 중", grad: "졸업예정", student: "재학·휴학 중", work: "일하는 중" };
 
   /* ---------- 로그인 없이 답하기: 미리 쓴 답 + 제도 정보 검색 ---------- */
   var BASIC_Q = ["소득인정액이 뭐예요?", "신청하려면 무엇을 준비해야 하나요?", "탈락하면 어떻게 하나요?"];
@@ -1173,27 +1177,83 @@ details.crit ul { margin: 10px 0 0; padding-left: 18px; display: flex; flex-dire
     }
   }
 
-  function readBusan() {
-    var size = +$("b-size").value, man = Math.max(0, +$("b-inc").value || 0);
-    return { age: Math.max(0, Math.round(+$("b-age").value || 0)), size: size, monthly: man * 10000, ratio: man * 10000 / MED[size] * 100, work: $("b-work").checked, rent: $("b-rent").checked, wed: $("b-wed").checked, crisis: $("b-crisis").checked };
+  /* ---------- 내 지원 찾기: 한 번 입력, 한 목록 ---------- */
+  var INCOME_IDS = {}, YOUTH_IDS = {};
+  progs.forEach(function (p) { INCOME_IDS[p.id] = 1; });
+  youth.forEach(function (p) { YOUTH_IDS[p.id] = 1; });
+  var ALL = progs.concat(youth.filter(function (p) { return p.id !== "didimdol"; }), busan);
+  function evalAny(p, u) {
+    if (INCOME_IDS[p.id]) return evalProg(p, u);
+    if (p.id !== "didimdol" && YOUTH_IDS[p.id]) return evalYouth(p, u);
+    return evalBusan(p, u);
   }
-  function renderBusan(u) {
-    var ev = evaluate(busan, evalBusan, u), c = ev.cnt;
-    var sum = $("b-sum"); sum.textContent = "";
+  var CATS = ["전체", "생활비", "의료", "주거", "일자리", "교육", "목돈", "교통"];
+  var curCat = "전체", lastU = null;
+
+  function readUnified() {
+    exUsed = false;
+    var F = function (id) { return fv(id, "uform"); };
+    var size = +F("u-size"), man = Math.max(0, +F("u-inc") || 0), status = F("u-status"), dual = F("u-dual");
+    var u = {
+      age: Math.max(0, Math.round(+F("u-age") || 0)), region: F("u-region"), status: status,
+      size: size, monthly: man * 10000, annualMan: man * 12, ratio: man * 10000 / MED[size] * 100,
+      type: size === 1 ? "solo" : dual ? "dual" : "single", dual: dual,
+      seek: status === "seek" || status === "grad", work: status === "work",
+      child: F("u-child"), rent: F("u-rent"), idle: F("u-idle"), wed: F("u-wed"), crisis: F("u-crisis")
+    };
+    u.note = exNote("uform");
+    return u;
+  }
+
+  function renderUnified(u) {
+    lastU = u;
+    var youthAge = u.age >= 15 && u.age <= 34;
+    var defs = ALL.filter(function (p) {
+      if (SCOPE[p.id] && u.region !== "busan") return false;
+      if (p.id === "kua" && youthAge) return false;
+      if (p.id === "kua-y" && !youthAge) return false;
+      return true;
+    });
+    var ev = evaluate(defs, evalAny, u);
+    var groups = { ok: [], check: [], no: [] };
+    ev.list.forEach(function (x) {
+      var g = x.r.st === "ok" ? "ok" : (x.r.st === "check" || x.r.st === "later") ? "check" : "no";
+      groups[g].push(x);
+    });
+    var sum = $("u-sum"); sum.textContent = ""; sum.appendChild(noteSpan(u));
     var b1 = document.createElement("b"); b1.textContent = "만 " + u.age + "세";
     var b2 = document.createElement("b"); b2.textContent = Math.round(u.ratio) + "%";
     sum.appendChild(b1);
-    sum.appendChild(document.createTextNode(", " + u.size + "인 가구. 가구 소득은 기준 중위소득의 "));
+    sum.appendChild(document.createTextNode(", " + REGION[u.region] + ", " + STATUS[u.status] + ", " + u.size + "인 가구. 가구 소득은 기준 중위소득의 "));
     sum.appendChild(b2);
-    sum.appendChild(document.createTextNode("입니다. 조건에 맞을 수 있음 " + c.ok + "개, 확인 필요 " + c.check + "개, 해당 없음 " + (c.na + c.over + c.later) + "개."));
-    renderCards("b-progs", ev.list, "부산 거주, 만 " + u.age + "세, 가구원 " + u.size + "인, 가구 월 소득 약 " + Math.round(u.monthly / 10000) + "만원(기준 중위소득의 " + Math.round(u.ratio) + "%)" + (u.work ? ", 일하는 중" : ", 일하지 않음"));
+    sum.appendChild(document.createTextNode("입니다. 신청해 볼 만한 제도 " + groups.ok.length + "개, 조건을 확인할 제도 " + groups.check.length + "개." + (u.region !== "busan" ? " 부산시 제도는 사는 곳이 부산일 때 함께 보여 줍니다." : "")));
+    var ctx = "만 " + u.age + "세, " + REGION[u.region] + " 거주, " + STATUS[u.status] + ", 가구원 " + u.size + "인, 가구 월 소득 약 " + Math.round(u.monthly / 10000) + "만원(기준 중위소득의 " + Math.round(u.ratio) + "%)";
+    ["ok", "check", "no"].forEach(function (g) {
+      var shown = groups[g].filter(function (x) { return curCat === "전체" || CAT[x.p.id] === curCat; });
+      renderCards("u-" + g, shown, ctx);
+      $("n-" + g).textContent = shown.length + "개";
+      $("g-" + g).hidden = !shown.length;
+    });
+    $("u-empty").hidden = !!($("u-ok").children.length + $("u-check").children.length + $("u-no").children.length);
   }
-  $("bform").addEventListener("submit", function (e) { e.preventDefault(); renderBusan(readBusan()); });
+
+  CATS.forEach(function (c) {
+    var b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = c;
+    b.setAttribute("aria-pressed", c === curCat);
+    b.onclick = function () {
+      curCat = c;
+      Array.prototype.forEach.call($("u-cats").children, function (x) { x.setAttribute("aria-pressed", x.textContent === c); });
+      if (lastU) renderUnified(lastU);
+    };
+    $("u-cats").appendChild(b);
+  });
+  $("uform").addEventListener("submit", function (e) {
+    e.preventDefault(); submitted.uform = true; renderUnified(readUnified());
+    if (window.matchMedia("(max-width: 959px)").matches) $("u-sum").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 
   setRange(Y0, Y1);
-  renderProgs(readForm());
-  renderYouth(readYouth());
-  renderBusan(readBusan());
+  renderUnified(readUnified());
 })();
 </script>
 
